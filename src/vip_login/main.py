@@ -7,7 +7,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import Depends, FastAPI, Request, status
 from fastapi.exceptions import HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from jose import jwt
 from sqlmodel import Session, SQLModel, create_engine, desc, select
 
@@ -153,10 +153,11 @@ async def get_chat(
 
 @app.post("/chat")
 async def post_chat(
+    req: Request,
     user: Annotated[User, Depends(decode_user_cookie)],
     human: Human,
     session: Session = Depends(get_session),
-) -> JSONResponse:
+) -> RedirectResponse:
     if user.token_remain <= 0:
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Your remaining token is exceeded!")
     human_message = ChatMessage(
@@ -172,17 +173,4 @@ async def post_chat(
     )
     session.add_all([human_message, assistant_message])
     session.commit()
-    resp = {
-        "conversations": [
-            {
-                "from": "human",
-                "value": human.value,
-            },
-            {
-                "from": "assistant",
-                "value": llm_response,
-            }
-        ]
-    }
-    return JSONResponse(resp)
-    
+    return RedirectResponse(req.url_for("get_chat"), status_code=status.HTTP_303_SEE_OTHER)
