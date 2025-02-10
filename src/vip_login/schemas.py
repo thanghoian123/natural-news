@@ -1,0 +1,122 @@
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Optional
+from uuid import UUID, uuid4
+
+from fastapi_mail import FastMail, MessageSchema, MessageType
+from nltk import word_tokenize
+from pydantic import BaseModel, computed_field, EmailStr
+from sqlalchemy import Column, Integer, String
+from sqlmodel import Field, Relationship, SQLModel
+
+from .config import MAIL_CONFIG
+
+
+class ChatMessage(SQLModel, table=True):
+
+    __tablename__ = "chat_message"
+
+    id: Optional[int] = Field(sa_column=Column("id", Integer, primary_key=True, autoincrement=True))
+    is_llm: bool = False
+    content: str = ""
+    create_date: datetime = Field(default_factory=datetime.now)
+    user_id: Optional[int] = Field(foreign_key="user.id")
+    user: Optional["User"] = Relationship(back_populates="messages")
+
+    @computed_field
+    @property
+    def creator(self) -> str:
+        if self.is_llm:
+            return MessageCreator.model.value
+        return MessageCreator.user.value
+    
+    @computed_field
+    @property
+    def token_count(self) -> int:
+        tokens = word_tokenize(self.content)
+        return len(tokens)
+
+    @property
+    def to_remove(self) -> bool:
+        now = datetime.now() + timedelta(days=100)
+        return now - self.create_date >= timedelta(days=90)
+
+
+class Human(BaseModel):
+
+    value: str = ""
+
+
+class MessageCreator(str, Enum):
+    user = "Human"
+    model = "Assistant"
+
+
+class Login(BaseModel):
+
+    email: EmailStr = "test@email.com"
+    session_password: str = ""
+
+
+class SessionLogin(SQLModel, table=True):
+
+    __tablename__ = "session_login"
+
+    id: Optional[int] = Field(sa_column=Column("id", Integer, primary_key=True, autoincrement=True))
+    email: str = Field(sa_column=Column("email", String, index=True, unique=True, nullable=False))
+    session_password: UUID = Field(default_factory=uuid4, nullable=False)
+    create_date: datetime = Field(default_factory=datetime.now, nullable=False)
+
+    async def send_mail(self) -> None:
+        html = (
+            f"<p>Hi <b>{self.email}</b>,</p>"
+            f"<p>This is your session login password:</p>"
+            f"<p><b>{self.session_password}</b></p>"
+        )
+        message = MessageSchema(
+            subject="Natural News VIP Session Login Password",
+            recipients=[self.email],
+            body=html,
+            subtype=MessageType.html,
+        )
+        fm = FastMail(config=MAIL_CONFIG)
+        await fm.send_message(message=message)
+        return None
+
+
+class User(SQLModel, table=True):
+
+    __tablename__ = "user"
+
+    id: Optional[int] = Field(sa_column=Column("id", Integer, primary_key=True, autoincrement=True))
+    login: str = Field(sa_column=Column("login", String, index=True, unique=True))
+    monthly_token_allow: int = 25_000
+    messages: list[ChatMessage] = Relationship(back_populates="user")
+
+    @computed_field
+    @property
+    def token_remain(self) -> int:
+        now = datetime.now()
+        year = now.year
+        month = now.month
+        this_month_messages = list(
+            filter(
+                lambda m: m.create_date.month == month and m.create_date.year == year,
+                self.messages
+            )
+        )
+        token_remain = self.monthly_token_allow - sum(
+            list(
+                map(
+                    lambda m: m.token_count,
+                    this_month_messages
+                )
+            )
+        )
+        return token_remain if token_remain >=0 else 0
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "login": self.login,
+            "token_remain": self.token_remain,
+        }
