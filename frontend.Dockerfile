@@ -2,7 +2,7 @@ FROM node:lts-alpine
 
 WORKDIR /app
 
-COPY ../vip-login-site /app/
+COPY ./vip-login-site /app/
 
 RUN npm --prefix /app/ install
 

@@ -14,9 +14,5 @@ dependencies = [
     "python-jose>=3.3.0",
     "nltk>=3.9.1",
     "apscheduler>=3.11.0",
-]
-
-[tool.uv]
-dev-dependencies = [
-  "lorem",
+    "lorem>=0.1.1",
 ]

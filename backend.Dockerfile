@@ -2,11 +2,7 @@ FROM python:3.12
 
 WORKDIR /app
 
-COPY ../requirements.txt /app/requirements.txt
-
-COPY ../src /app/src
-
-COPY ../pyproject.toml /app/pyproject.toml
+COPY . /app/
 
 RUN python3 -m pip install --upgrade pip
 
@@ -16,7 +12,7 @@ RUN python3 -m nltk.downloader punkt
 
 RUN python3 -m nltk.downloader punkt_tab
 
-RUN python3 -m pip install .
+RUN python3 -m pip install /app
 
 EXPOSE 8000
 
