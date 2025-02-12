@@ -1,9 +1,11 @@
+import logging
+
 from fastapi_mail import ConnectionConfig
 
 
 DB = "sqlite:///database.db"
 
-SECRET_KEY = "your-secret-key-here"
+LOGGER = logging.getLogger("uvicorn.error")
 
 MAIL_CONFIG = ConnectionConfig(
     MAIL_USERNAME = "nhatnguyenminh061289@gmail.com",
@@ -17,3 +19,5 @@ MAIL_CONFIG = ConnectionConfig(
     USE_CREDENTIALS = True,
     VALIDATE_CERTS = True,
 )
+
+SECRET_KEY = "your-secret-key-here"

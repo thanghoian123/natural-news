@@ -302,6 +302,15 @@ wheels = [
 ]
 
 [[package]]
+name = "lorem"
+version = "0.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3a/ae/6a5d8faaec3bc847ae1999e760f76c7238cefd99452e040e4aea5f723738/lorem-0.1.1.tar.gz", hash = "sha256:785f4109a241fc2891e59705e85d065f6e6d3ed6ad91750a8cb54d4f3e59d934", size = 3913 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/90/7e/963834e2a400cefdf72af1e10a106c9e849cb4c149cc7b394cb1492effec/lorem-0.1.1-py3-none-any.whl", hash = "sha256:c9c2914b5a772022417c398bd74b7bbd712e73ff029ba82720855e458f13ae42", size = 4999 },
+]
+
+[[package]]
 name = "markdown-it-py"
 version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -789,6 +798,11 @@ dependencies = [
     { name = "sqlmodel" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "lorem" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "apscheduler", specifier = ">=3.11.0" },
@@ -798,6 +812,9 @@ requires-dist = [
     { name = "python-jose", specifier = ">=3.3.0" },
     { name = "sqlmodel", specifier = ">=0.0.22" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "lorem" }]
 
 [[package]]
 name = "watchfiles"

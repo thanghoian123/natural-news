@@ -9,7 +9,7 @@ from pydantic import BaseModel, computed_field, EmailStr
 from sqlalchemy import Column, Integer, String
 from sqlmodel import Field, Relationship, SQLModel
 
-from .config import MAIL_CONFIG
+from vip_login.config import LOGGER, MAIL_CONFIG
 
 
 class ChatMessage(SQLModel, table=True):
@@ -81,6 +81,7 @@ class SessionLogin(SQLModel, table=True):
         )
         fm = FastMail(config=MAIL_CONFIG)
         await fm.send_message(message=message)
+        LOGGER.info(f"Session Password email sent to: {self.email}!")
         return None
 
 

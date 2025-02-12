@@ -7,8 +7,10 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import Depends, FastAPI, Request, status
 from fastapi.exceptions import HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from jose import jwt
+from lorem import text
 from sqlmodel import Session, SQLModel, create_engine, desc, select
 
 from vip_login.config import *
@@ -20,6 +22,8 @@ DB_URL = getenv("DB_URL", DB)
 
 
 async def _get_llm_response() -> str:
+    if getenv("env", "DEV") == "DEV":
+        return text()
     return "1"
 
 
@@ -61,6 +65,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+if getenv("env", "DEV") == "DEV":
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost",
+            "http://localhost:5173",
+        ],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 def decode_user_cookie(req: Request, session: Session = Depends(get_session)) -> User:
@@ -87,11 +102,14 @@ def decode_user_cookie(req: Request, session: Session = Depends(get_session)) ->
 
 
 @app.get("/login")
-async def login() -> JSONResponse:
-    return JSONResponse({"Hello": "World"})
+async def login(
+    user: Annotated[User, Depends(decode_user_cookie)]
+) -> JSONResponse:
+    ret_val = user.to_json()
+    return JSONResponse(ret_val)
 
 
-@app.post("/login", response_model=User)
+@app.post("/login")
 async def upsert_user(
     login: Login,
     session: Session = Depends(get_session)
@@ -121,24 +139,11 @@ async def upsert_user(
         if not session_login or session_login.session_password.__str__() != login.session_password:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Session Login and Password does not match!")
         ret_val = user.to_json()
-        resp = JSONResponse(ret_val)
         exp = time() + TO_SEC_90_DAYS
         payload = dict(exp=exp, iss="NaturalNewsVip", aud="subscriber", email=login.email)
         token = jwt.encode(payload, key=SECRET, algorithm="HS512")
-        resp.set_cookie(
-            key="natural-news-vip",
-            value=token,
-            expires=exp,
-        )
-        return resp
-
-
-@app.get("/")
-async def get_root(
-    user: Annotated[User, Depends(decode_user_cookie)],
-) -> JSONResponse:
-    resp = {"message": f"Hello {user.login}, you have {user.token_remain:,} token(s) left!"}
-    return JSONResponse(resp)
+        ret_val.update({"natural-news-vip": token})
+        return JSONResponse(ret_val)
 
 
 @app.get("/chat")
