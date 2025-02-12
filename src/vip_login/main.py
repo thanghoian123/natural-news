@@ -128,7 +128,7 @@ async def upsert_user(
         if not session_login:
             session_login = SessionLogin(email=login.email)
         else:
-            session_login.session_password = uuid4()
+            session_login.session_password = random_6_digits()
         session.add(session_login)
         session.commit()
         session.refresh(session_login)
@@ -136,7 +136,7 @@ async def upsert_user(
 
         return JSONResponse({"message": "Please check your email for session login password!"})
     else:
-        if not session_login or session_login.session_password.__str__() != login.session_password:
+        if not session_login or session_login.session_password != login.session_password:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Session Login and Password does not match!")
         ret_val = user.to_json()
         exp = time() + TO_SEC_90_DAYS

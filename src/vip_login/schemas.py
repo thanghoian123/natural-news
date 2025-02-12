@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 from enum import Enum
+from random import choices
+from string import digits
 from typing import Any, Optional
-from uuid import UUID, uuid4
 
 from fastapi_mail import FastMail, MessageSchema, MessageType
 from nltk import word_tokenize
@@ -10,6 +11,10 @@ from sqlalchemy import Column, Integer, String
 from sqlmodel import Field, Relationship, SQLModel
 
 from vip_login.config import LOGGER, MAIL_CONFIG
+
+
+def random_6_digits():
+    return "".join(choices(digits, k=6))
 
 
 class ChatMessage(SQLModel, table=True):
@@ -64,14 +69,14 @@ class SessionLogin(SQLModel, table=True):
 
     id: Optional[int] = Field(sa_column=Column("id", Integer, primary_key=True, autoincrement=True))
     email: str = Field(sa_column=Column("email", String, index=True, unique=True, nullable=False))
-    session_password: UUID = Field(default_factory=uuid4, nullable=False)
+    session_password: str = Field(default_factory=random_6_digits, nullable=False)
     create_date: datetime = Field(default_factory=datetime.now, nullable=False)
 
     async def send_mail(self) -> None:
         html = (
             f"<p>Hi <b>{self.email}</b>,</p>"
             f"<p>This is your session login password:</p>"
-            f"<p><b>{self.session_password}</b></p>"
+            f"<h1><b>{self.session_password}</b></h1>"
         )
         message = MessageSchema(
             subject="Natural News VIP Session Login Password",
