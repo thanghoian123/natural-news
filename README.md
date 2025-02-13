@@ -13,7 +13,7 @@ Build with FastAPI, FastMail, Apscheduler, SQLModel.
 #### Docker
 
 ```bash
-$ docker build . -t backend --progress plain -f backend.Dockerfile # Build docker image from file
+$ docker build . -t backend --progress plain -f backend.Dockerfile # Build docker image
 
 $ docker run -p 8000:8000 backend # Run docker container
 ```
