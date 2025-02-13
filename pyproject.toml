@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "HRS Vip Login Site"
 readme = "README.md"
 authors = [
-    { name = "neil", email = "" }
+    { name = "neil", email = "neilproton@gmail.com" }
 ]
 requires-python = ">=3.12"
 dependencies = [
