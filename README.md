@@ -1,5 +1,9 @@
 # NATURAL NEWS VIP LOGIN
 
+## Architect
+
+![Project Architect](./docs/architect.png)
+
 ## Backend
 
 Build with FastAPI, FastMail, Apscheduler, SQLModel.
