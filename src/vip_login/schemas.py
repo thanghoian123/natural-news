@@ -13,6 +13,7 @@ from sqlmodel import Field, Relationship, SQLModel
 from vip_login.config import LOGGER, MAIL_CONFIG
 from sqlalchemy import Boolean, DateTime, JSON, func
 
+import uuid
 
 def random_6_digits():
     return "".join(choices(digits, k=6))
@@ -148,7 +149,7 @@ class Customer(SQLModel, table=True):
 class WebhookEvent(SQLModel, table=True):
     __tablename__ = "webhookevent"
 
-    id: Optional[str] = Field(sa_column=Column("id", String, primary_key=True, index=True, autoincrement=True))
+    id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), sa_column=Column("id", String, primary_key=True))  # Generating UUID automatically
     event_type: str = Field(sa_column=Column("event_type", String, nullable=False))  # example: "program_events/customer.points_earned"
     payload: dict = Field(sa_column=Column("payload", JSON, nullable=False))  # raw webhook data
     received_at: datetime = Field(sa_column=Column("received_at", DateTime(timezone=True), server_default=func.now()))
