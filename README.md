@@ -70,3 +70,7 @@ You can run each end separately the way you want, or combine all into 1 command:
 ```bash
 docker compose up -d
 ```
+
+## Todos for Production
+
+- See [PRODUCTION.md](./docs/PRODUCTION.md)
