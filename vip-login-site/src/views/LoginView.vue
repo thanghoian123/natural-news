@@ -9,7 +9,7 @@ const subscriptionButtonClicked = ref(false);
 const cookiesManager = useCookies();
 
 axios.defaults.withCredentials = true;
-axios.defaults.baseURL = "http://localhost:8000";
+axios.defaults.baseURL = "https://vip.healthrangerstore.com";
 
 const subscriptEmail = async () => {
   const emailCheck = username.value

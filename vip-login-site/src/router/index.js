@@ -3,7 +3,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import ChatView from "../views/ChatView.vue";
 import LoginView from "../views/LoginView.vue";
 
-axios.defaults.baseURL = "http://localhost:8000";
+axios.defaults.baseURL = "https://vip.healthrangerstore.com";
 axios.defaults.withCredentials = true;
 
 const _get_default_route = async () => {

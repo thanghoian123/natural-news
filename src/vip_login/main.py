@@ -10,7 +10,7 @@ from fastapi.exceptions import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from jose import jwt
-from lorem import text
+# from lorem import text
 from sqlmodel import Session, SQLModel, create_engine, desc, select
 
 from vip_login.config import *
@@ -115,6 +115,7 @@ if getenv("env", "DEV") == "DEV":
         allow_origins=[
             "http://localhost",
             "http://localhost:5173",
+            "https://vip.healthrangerstore.com"
         ],
         allow_credentials=True,
         allow_methods=["*"],
@@ -232,16 +233,11 @@ async def post_chat(
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="You have no tokens remaining.")
     
     if customer:
-        # Calculate the token usage for the query (example: 1000 tokens for this example)
-        token_usage = 1000  # Modify this based on the actual token usage
-
         # Check if the user has enough tokens for the query
-        if customer.chat_tokens < token_usage:
+        if customer.chat_tokens <= 0:
             raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Not enough tokens for the query.")
 
-        # Deduct tokens
-        customer.chat_tokens -= token_usage
-        session.commit()
+
 
     # Proceed with sending the query and getting a response
     human_message = ChatMessage(
@@ -250,6 +246,12 @@ async def post_chat(
         user_id=user.id,
     )
     llm_response = await _get_llm_response(human_message)
+    # Calculate the token usage for the query (example: 1000 tokens for this example)
+    token_usage = 1000  # Modify this based on the actual token usage
+
+    customer.chat_tokens -= token_usage
+    # Deduct tokens
+    session.commit()
     assistant_message = ChatMessage(
         is_llm=True,
         content=llm_response,
@@ -280,6 +282,7 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
 
     if event_type == "customer/update":
         customer_data = payload.get("customer", {})
+        print(customer_data)
         loyaltylion_id = str(customer_data.get("id"))
         
         points_approved = customer_data.get("points_approved", 0)
@@ -304,7 +307,7 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
         else:
             # Create new customer
             customer = Customer(
-                id=str(uuid.uuid4()),  # HRS db
+                # id=str(uuid.uuid4()),  # HRS db
                 loyaltylion_id=loyaltylion_id,  # "customer": {"id": 6932,...}
                 merchant_id=customer_data.get("merchant_id"),
                 email=customer_data.get("email"),

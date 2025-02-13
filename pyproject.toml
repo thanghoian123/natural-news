@@ -1,10 +1,10 @@
 [project]
-name = "vip-login"
+name = "hrs-vip-login"
 version = "0.1.0"
-description = "Vip Login Site"
+description = "HRS Vip Login Site"
 readme = "README.md"
 authors = [
-    { name = "nhatnm0612", email = "nhatnguyenminh061289@gmail.com" }
+    { name = "neil", email = "" }
 ]
 requires-python = ">=3.12"
 dependencies = [

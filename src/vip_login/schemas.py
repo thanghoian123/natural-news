@@ -131,8 +131,8 @@ class User(SQLModel, table=True):
 class Customer(SQLModel, table=True):
     __tablename__ = "customer"
 
-    id: Optional[str] = Field(sa_column=Column("id", String, primary_key=True, index=True))
-    loyaltylion_id: str = Field(sa_column=Column("loyaltylion_id", String, unique=True, nullable=False))  # ID from LoyaltyLion
+    # id: Optional[str] = Field(sa_column=Column("id", String, primary_key=True, index=True))
+    loyaltylion_id: str = Field(sa_column=Column("loyaltylion_id", String, primary_key=True, unique=True, nullable=False))  # ID from LoyaltyLion
     merchant_id: Optional[str] = Field(sa_column=Column("merchant_id", String, nullable=True))
     email: Optional[str] = Field(sa_column=Column("email", String, unique=True, nullable=True))
     points_approved: int = Field(sa_column=Column("points_approved", Integer, default=0))
@@ -148,7 +148,7 @@ class Customer(SQLModel, table=True):
 class WebhookEvent(SQLModel, table=True):
     __tablename__ = "webhookevent"
 
-    id: Optional[str] = Field(sa_column=Column("id", String, primary_key=True, index=True))
+    id: Optional[str] = Field(sa_column=Column("id", String, primary_key=True, index=True, autoincrement=True))
     event_type: str = Field(sa_column=Column("event_type", String, nullable=False))  # example: "program_events/customer.points_earned"
     payload: dict = Field(sa_column=Column("payload", JSON, nullable=False))  # raw webhook data
     received_at: datetime = Field(sa_column=Column("received_at", DateTime(timezone=True), server_default=func.now()))

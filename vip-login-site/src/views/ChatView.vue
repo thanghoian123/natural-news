@@ -6,7 +6,7 @@ import User from "../components/User.vue";
 import router from "../router";
 
 axios.defaults.withCredentials = true;
-axios.defaults.baseURL = "http://localhost:8000";
+axios.defaults.baseURL = "https://vip.healthrangerstore.com";
 
 class ChatMessages {
   constructor(content, isLlm) {
