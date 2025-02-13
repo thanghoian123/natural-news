@@ -1,3 +1,3 @@
-BASE_URL = "http://localhost:8000";
+BASE_URL = "https://vip.naturalnews.com";
 
 export default BASE_URL;
