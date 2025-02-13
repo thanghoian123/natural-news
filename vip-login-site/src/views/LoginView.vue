@@ -57,10 +57,10 @@ const onLogin = async () => {
         }
       }
     )
-    const responseDataToken = response.data["natural-news-vip"];
+    const responseDataToken = response.data["hrs-vip"];
     let date = new Date();
     date.setMonth(date.getMonth() + 3);
-    cookiesManager.cookies.set("natural-news-vip", responseDataToken, date);
+    cookiesManager.cookies.set("hrs-vip", responseDataToken, date);
     router.push({ path: "/chat", replace: true });
   } catch {
     sessionPasswordError.value = "Password does not match";

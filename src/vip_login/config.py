@@ -5,15 +5,17 @@ from fastapi_mail import ConnectionConfig
 
 DB = "sqlite:///database.db"
 
+LOYALTY_WEBHOOK_SECRET = "abc"
+
 LOGGER = logging.getLogger("uvicorn.error")
 
 MAIL_CONFIG = ConnectionConfig(
-    MAIL_USERNAME = "nhatnguyenminh061289@gmail.com",
-    MAIL_PASSWORD = "ekzoedpfpqujisrn",
-    MAIL_FROM = "nhatnguyenminh061289@gmail.com",
+    MAIL_USERNAME = "neilproton@gmail.com",
+    MAIL_PASSWORD = "AINLP@@!!##",
+    MAIL_FROM = "neilproton@gmail.com",
     MAIL_PORT = 587,
     MAIL_SERVER = "smtp.gmail.com",
-    MAIL_FROM_NAME="Nathan Nguyen",
+    MAIL_FROM_NAME="Nguyen Ton",
     MAIL_STARTTLS = True,
     MAIL_SSL_TLS = False,
     USE_CREDENTIALS = True,
