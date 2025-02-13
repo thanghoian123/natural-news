@@ -14,6 +14,6 @@ RUN python3 -m nltk.downloader punkt_tab
 
 RUN python3 -m pip install /app
 
-EXPOSE 8000
+EXPOSE 8001
 
-CMD [ "fastapi", "run", "/app/src/vip_login/main.py", "--port", "8000" ]
+CMD [ "fastapi", "run", "/app/src/vip_login/main.py", "--port", "8001" ]

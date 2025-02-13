@@ -71,6 +71,7 @@ if getenv("env", "DEV") == "DEV":
         allow_origins=[
             "http://localhost",
             "http://localhost:5173",
+            "https://vip.naturalnews.com/"
         ],
         allow_credentials=True,
         allow_methods=["*"],
