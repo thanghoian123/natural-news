@@ -265,14 +265,15 @@ async def post_chat(
 
 @app.post("/webhook/loyaltylion")
 async def loyaltylion_webhook(request: Request, session: Session = Depends(get_session)):
-    signature = request.headers.get("X-LoyaltyLion-Signature")
-    if not signature:
-        raise HTTPException(status_code=400, detail="Missing Signature")
+    # signature = request.headers.get("X-LoyaltyLion-Signature")
+    # if not signature:
+    #     raise HTTPException(status_code=400, detail="Missing Signature")
     
     body = await request.body()
-    if not verify_signature(body, signature):
-        raise HTTPException(status_code=401, detail="Invalid signature")
-    
+    # if not verify_signature(body, signature):
+    #     raise HTTPException(status_code=401, detail="Invalid signature")
+    print(body)
+    print(type(body))
     data = json.loads(body)
     event_type = data.get("type")
     payload = data.get("payload", {})
@@ -282,7 +283,9 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
 
     if event_type == "customer/update":
         customer_data = payload.get("customer", {})
+        print("="*50)
         print(customer_data)
+        print("="*50)
         loyaltylion_id = str(customer_data.get("id"))
         
         points_approved = customer_data.get("points_approved", 0)
