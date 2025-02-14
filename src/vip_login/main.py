@@ -120,7 +120,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 if getenv("env", "DEV") == "DEV":
-    allow_origins = ["http://localhost", "http://localhost:5173", "http://localhost:8000", "https://vip.healthrangerstore.com"]
+    allow_origins = ["http://localhost", "http://localhost:5173", "http://localhost:8000", "https://vip.healthrangerstore.com", "https://api-hrs.healthrangerstore.com"]
 else:
     allow_origins = ["https://vip.healthrangerstore.com/"]
 
