@@ -116,7 +116,8 @@ class User(SQLModel, table=True):
                 self.messages
             )
         )
-        token_remain = self.token_allow - sum(
+        token_allow = self.token_allow if self.token_allow is not None else 0
+        token_remain = token_allow - sum(
             list(
                 map(
                     lambda m: m.token_count,
