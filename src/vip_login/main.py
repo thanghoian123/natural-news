@@ -81,7 +81,7 @@ async def _get_llm_response(request: ChatMessage) -> str:
     return response, total_tokens
 
 engine = create_engine(
-    url="DB_URL",
+    url=DB_URL,
     echo=True,
     connect_args={"check_same_thread": False},
 )
