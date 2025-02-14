@@ -276,7 +276,7 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
     print(body)
     print(type(body))
     data = json.loads(body)
-    event_type = data.get("type")
+    event_type = data.get("topic")
     payload = data.get("payload", {})
 
     event = WebhookEvent(event_type=event_type, payload=payload)
