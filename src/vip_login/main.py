@@ -175,7 +175,7 @@ async def login(
     customer = session.exec(statement).one_or_none()
     
     if customer:
-        ret_val["chat_tokens"] = customer.chat_tokens  # Add chat tokens to the response
+        ret_val["token_allow"] = customer.chat_tokens  # Add chat tokens to the response
 
     return JSONResponse(ret_val)
 
