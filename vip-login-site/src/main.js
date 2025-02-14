@@ -11,7 +11,7 @@ app.use(router);
 
 app.use(
   install, {
-    sitekey: "6Ld8pNQqAAAAAGEM2JP0lbyWn-zeNemsafW1Md_2",
+    sitekey: "6Ldh-NYqAAAAAOiHmQEzA9aKbOvPuLo-N6UahU0I",
     cnDomains: false,
   }
 );

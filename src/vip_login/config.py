@@ -7,6 +7,8 @@ DB = "sqlite:///database.db"
 
 LOYALTY_WEBHOOK_SECRET = "abc"
 
+TOKEN_EQUIVALENT = 10
+
 LOGGER = logging.getLogger("uvicorn.error")
 
 MAIL_CONFIG = ConnectionConfig(
@@ -22,4 +24,4 @@ MAIL_CONFIG = ConnectionConfig(
     VALIDATE_CERTS = True,
 )
 
-SECRET_KEY = "your-secret-key-here"
+SECRET_KEY = "6Ldh-NYqAAAAABGKQAQshoXLmiNqrrltquhfKuX0"

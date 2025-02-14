@@ -24,6 +24,7 @@ import uuid
 
 SECRET = getenv("SECRET_KEY", SECRET_KEY)
 DB_URL = getenv("DB_URL", DB)
+TOKEN_EQUIVALENT = getenv("TOKEN_EQUIVALENT", TOKEN_EQUIVALENT)
 LOYALTY_WEBHOOK_SECRET = getenv("LOYALTY_WEBHOOK_SECRET", LOYALTY_WEBHOOK_SECRET)
 
 def initialize_client_and_model(llm_selection):
@@ -48,28 +49,36 @@ def verify_signature(request_body: bytes, received_signature: str):
 async def _get_llm_response(request: ChatMessage) -> str:
     client, model = initialize_client_and_model("Enoch-RC-14-128K")
 
-    async def event_generator():
-        # Create the stream
-        stream = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": request.content}],
-            stream=True,
-        )
+    # async def event_generator():
+    #     # Create the stream
+    #     stream = client.chat.completions.create(
+    #         model=model,
+    #         messages=[{"role": "user", "content": request.content}],
+    #         stream=True,
+    #     )
 
-        try:
-            async for chunk in stream:
-                if len(chunk.choices) > 0 and chunk.choices[0].delta.content is not None:
-                    # Extract the content from the chunk (assuming the structure you've shown)
-                    content = chunk.choices[0].delta.content
+    #     try:
+    #         async for chunk in stream:
+    #             if len(chunk.choices) > 0 and chunk.choices[0].delta.content is not None:
+    #                 # Extract the content from the chunk (assuming the structure you've shown)
+    #                 content = chunk.choices[0].delta.content
 
-                    if content:  # Only yield non-empty content
-                        yield content  # Yield the content to the client
+    #                 if content:  # Only yield non-empty content
+    #                     yield content  # Yield the content to the client
 
-        except StopAsyncIteration:
-            pass  # Stop iteration when the stream ends
+    #     except StopAsyncIteration:
+    #         pass  # Stop iteration when the stream ends
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    # return StreamingResponse(event_generator(), media_type="text/event-stream")
 
+    not_stream = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": request.content}],
+        stream=False,
+    )
+    response = not_stream['choices'][0]['message']['content']
+    total_tokens = response['usage']['total_tokens'] 
+    return response, total_tokens
 
 engine = create_engine(
     url=DB_URL,
@@ -246,9 +255,10 @@ async def post_chat(
         content=human.value,
         user_id=user.id,
     )
-    llm_response = await _get_llm_response(human_message)
+    print(human_message.content)
+    llm_response, total_tokens = await _get_llm_response(human_message)
     # Calculate the token usage for the query (example: 1000 tokens for this example)
-    token_usage = 1000  # Modify this based on the actual token usage
+    token_usage = total_tokens  # Modify this based on the actual token usage
 
     customer.chat_tokens -= token_usage
     # Deduct tokens
@@ -293,7 +303,7 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
         points_balance = points_redeem  # Assuming approved points are the current balance
         
         # Convert points to chat tokens (1 point = 1000 chat tokens)
-        chat_tokens = points_redeem * 1000
+        chat_tokens = points_redeem * TOKEN_EQUIVALENT
         
         # Check if customer exists
         statement = select(Customer).where(Customer.loyaltylion_id == loyaltylion_id)
