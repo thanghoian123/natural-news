@@ -24,4 +24,4 @@ MAIL_CONFIG = ConnectionConfig(
     VALIDATE_CERTS = True,
 )
 
-SECRET_KEY = "6Ldh-NYqAAAAABGKQAQshoXLmiNqrrltquhfKuX0"
+SECRET_KEY = "your-secret-key-here"

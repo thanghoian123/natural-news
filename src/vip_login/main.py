@@ -154,24 +154,12 @@ def decode_user_cookie(req: Request, session: Session = Depends(get_session)) ->
         raise error
     return user
 
-
-
-# @app.get("/login")
-# async def login(
-#     user: Annotated[User, Depends(decode_user_cookie)]
-# ) -> JSONResponse:
-#     ret_val = user.to_json()
-#     return JSONResponse(ret_val)
-
 @app.get("/login")
 async def login(
     user: Annotated[User, Depends(decode_user_cookie)],
-    session: Session = Depends(get_session)
 ) -> JSONResponse:
     ret_val = user.to_json()
     return JSONResponse(ret_val)
-
-
 
 @app.post("/login")
 async def upsert_user(
@@ -223,7 +211,7 @@ async def get_chat(
 @app.post("/chat")
 async def post_chat(
     req: Request,
-    user: Annotated[User, Depends(decode_user_cookie)],
+    user: User,
     human: Human,
     session: Session = Depends(get_session),
 ) -> RedirectResponse:

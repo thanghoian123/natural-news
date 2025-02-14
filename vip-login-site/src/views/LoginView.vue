@@ -53,22 +53,22 @@ const subscriptEmail = async () => {
 
 const onLogin = async () => {
   try {
-    // const response = await axios.post(
-    //   "/login",
-    //   {
-    //     email: username.value,
-    //     session_password: sessionPassword.value,
-    //   },
-    //   {
-    //     headers: {
-    //       "Content-Type": "application/json;charset=UTF-8"
-    //     }
-    //   }
-    // )
-    // const responseDataToken = response.data["hrs-vip"];
-    // let date = new Date();
-    // date.setMonth(date.getMonth() + 3);
-    // cookiesManager.cookies.set("hrs-vip", responseDataToken, date);
+    const response = await axios.post(
+      "/login",
+      {
+        email: username.value,
+        session_password: sessionPassword.value,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json;charset=UTF-8"
+        }
+      }
+    )
+    const responseDataToken = response.data["hrs-vip"];
+    let date = new Date();
+    date.setMonth(date.getMonth() + 3);
+    cookiesManager.cookies.set("hrs-vip", responseDataToken, date);
     router.push({ path: "/chat", replace: true });
   } catch {
     sessionPasswordError.value = "Password does not match";
