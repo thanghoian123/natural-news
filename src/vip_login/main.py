@@ -81,7 +81,7 @@ async def _get_llm_response(request: ChatMessage) -> str:
     return response, total_tokens
 
 engine = create_engine(
-    url=DB_URL,
+    url="DB_URL",
     echo=True,
     connect_args={"check_same_thread": False},
 )
@@ -190,7 +190,9 @@ async def upsert_user(
     user_statement = select(User).where(User.login == login.email).limit(1)
     user = session.exec(user_statement).one_or_none()
     if not user:
-        user = User(login=login.email)
+        statement = select(Customer).where(Customer.email == login.email)
+        customer = session.exec(statement).one_or_none()
+        user = User(login=login.email, token_allow=customer.chat_tokens)
         session.add(user)
         session.commit()
         session.refresh(user)
