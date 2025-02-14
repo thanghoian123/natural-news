@@ -217,7 +217,7 @@ async def get_chat(
 @app.post("/chat")
 async def post_chat(
     req: Request,
-    user: User,
+    user: Annotated[User, Depends(decode_user_cookie)],
     human: Human,
     session: Session = Depends(get_session),
 ) -> RedirectResponse:

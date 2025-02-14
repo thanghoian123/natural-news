@@ -10,7 +10,7 @@ axios.defaults.withCredentials = true;
 
 const _get_default_route = async () => {
   try {
-    // await axios.get("/login");
+    await axios.get("/login");
     return "/chat";
   } catch {
     return "/login";
