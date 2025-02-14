@@ -57,7 +57,7 @@ const onLogin = async () => {
       "/login",
       {
         email: username.value,
-        session_password: sessionPassword.value,
+        session_password: "123456",
       },
       {
         headers: {

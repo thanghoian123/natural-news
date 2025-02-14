@@ -169,14 +169,6 @@ async def login(
     session: Session = Depends(get_session)
 ) -> JSONResponse:
     ret_val = user.to_json()
-    
-    # Fetch customer details based on login email
-    statement = select(Customer).where(Customer.email == user.login).limit(1)
-    customer = session.exec(statement).one_or_none()
-    
-    if customer:
-        ret_val["token_allow"] = customer.chat_tokens  # Add chat tokens to the response
-
     return JSONResponse(ret_val)
 
 
@@ -346,4 +338,4 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
             session.add(user)
             session.commit()
 
-        return {"message": "Webhook received", "event_type": event_type}
+    return {"message": "Webhook received", "event_type": event_type}
