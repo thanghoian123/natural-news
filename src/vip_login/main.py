@@ -109,18 +109,19 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
 if getenv("env", "DEV") == "DEV":
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[
-            "http://localhost",
-            "http://localhost:5173",
-            "https://vip.healthrangerstore.com"
-        ],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    allow_origins = ["http://localhost", "http://localhost:5173", "http://localhost:8000"]
+else:
+    allow_origins = ["https://vip.healthrangerstore.com/"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allow_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def decode_user_cookie(req: Request, session: Session = Depends(get_session)) -> User:
