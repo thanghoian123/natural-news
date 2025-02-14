@@ -53,18 +53,18 @@ const subscriptEmail = async () => {
 
 const onLogin = async () => {
   try {
-    const response = await axios.post(
-      "/login",
-      {
-        email: username.value,
-        session_password: sessionPassword.value,
-      },
-      {
-        headers: {
-          "Content-Type": "application/json;charset=UTF-8"
-        }
-      }
-    )
+    // const response = await axios.post(
+    //   "/login",
+    //   {
+    //     email: username.value,
+    //     session_password: sessionPassword.value,
+    //   },
+    //   {
+    //     headers: {
+    //       "Content-Type": "application/json;charset=UTF-8"
+    //     }
+    //   }
+    // )
     // const responseDataToken = response.data["hrs-vip"];
     // let date = new Date();
     // date.setMonth(date.getMonth() + 3);
