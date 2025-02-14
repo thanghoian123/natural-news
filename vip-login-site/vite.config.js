@@ -23,7 +23,7 @@ export default ({mode}) => {
       },
     },
     server: {
-      allowedHosts: [allowedHost],
+      allowedHosts: ["vip.healthrangerstore.com"],
     },
   });
 };
