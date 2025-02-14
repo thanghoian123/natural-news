@@ -76,6 +76,8 @@ async def _get_llm_response(request: ChatMessage) -> str:
         messages=[{"role": "user", "content": request.content}],
         stream=False,
     )
+    print(not_stream)
+    print(type(not_stream))
     response = not_stream['choices'][0]['message']['content']
     total_tokens = response['usage']['total_tokens'] 
     return response, total_tokens
