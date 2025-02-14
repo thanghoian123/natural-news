@@ -78,8 +78,12 @@ async def _get_llm_response(request: ChatMessage) -> str:
     )
     print(not_stream)
     print(type(not_stream))
-    response = not_stream['choices'][0]['message']['content']
-    total_tokens = response['usage']['total_tokens'] 
+    choices = not_stream.choices
+    if choices:
+        response = choices[0].message.content
+    else:
+        response = 'No content available'
+    total_tokens = not_stream.usage.total_tokens
     return response, total_tokens
 
 engine = create_engine(
