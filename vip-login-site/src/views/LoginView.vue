@@ -57,7 +57,7 @@ const onLogin = async () => {
       "/login",
       {
         email: username.value,
-        session_password: "123456",
+        session_password: sessionPassword.value,
       },
       {
         headers: {
@@ -65,10 +65,10 @@ const onLogin = async () => {
         }
       }
     )
-    const responseDataToken = response.data["hrs-vip"];
-    let date = new Date();
-    date.setMonth(date.getMonth() + 3);
-    cookiesManager.cookies.set("hrs-vip", responseDataToken, date);
+    // const responseDataToken = response.data["hrs-vip"];
+    // let date = new Date();
+    // date.setMonth(date.getMonth() + 3);
+    // cookiesManager.cookies.set("hrs-vip", responseDataToken, date);
     router.push({ path: "/chat", replace: true });
   } catch {
     sessionPasswordError.value = "Password does not match";
