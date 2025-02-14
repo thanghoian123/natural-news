@@ -3,7 +3,9 @@ import { createRouter, createWebHistory } from "vue-router";
 import ChatView from "../views/ChatView.vue";
 import LoginView from "../views/LoginView.vue";
 
-axios.defaults.baseURL = "https://vip.naturalnews.com";
+const baseURL = import.meta.env.VITE_BASE_URL
+
+axios.defaults.baseURL = baseURL ? baseURL : "https://vip.naturalnews.com";
 axios.defaults.withCredentials = true;
 
 const _get_default_route = async () => {

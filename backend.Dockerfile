@@ -2,7 +2,11 @@ FROM python:3.12
 
 WORKDIR /app
 
-COPY . /app/
+COPY ./requirements.txt /app/requirements.txt
+
+COPY ./src /app/src
+
+COPY ./pyproject.toml /app/pyproject.toml
 
 RUN python3 -m pip install --upgrade pip
 

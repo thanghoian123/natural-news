@@ -8,8 +8,10 @@ import router from "../router";
 const subscriptionButtonClicked = ref(false);
 const cookiesManager = useCookies();
 
+const baseURL = import.meta.env.VITE_BASE_URL
+
+axios.defaults.baseURL = baseURL ? baseURL : "https://vip.naturalnews.com";
 axios.defaults.withCredentials = true;
-axios.defaults.baseURL = "https://vip.naturalnews.com";
 
 const subscriptEmail = async () => {
   const emailCheck = username.value

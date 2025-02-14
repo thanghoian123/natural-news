@@ -15,7 +15,7 @@ Build with FastAPI, FastMail, Apscheduler, SQLModel.
 ```bash
 $ docker build . -t backend --progress plain -f backend.Dockerfile # Build docker image
 
-$ docker run -p 8000:8000 backend # Run docker container
+$ docker run -p 8001:8001 backend # Run docker container
 ```
 
 #### Unix like OS
@@ -32,7 +32,7 @@ Go to scripts folder, right click into run.bat file, choose Run
 
 #### OpenAPI Docs
 
-Open your web browser, go to http://0.0.0.0:8000/docs to review routes and models
+Open your web browser, go to http://0.0.0.0:8001/docs to review routes and models
 
 ### Database schemas:
 
@@ -50,7 +50,7 @@ Build with Vue, VueRouter, VueCookies, Vue3Recaptcha, Axios
 ```bash
 $ docker build . -t frontend --progress plain -f frontend.Dockerfile # Build docker image
 
-$ docker run -p 8080:8080 frontend # Run docker container
+$ docker run -p 8000:8000 frontend # Run docker container
 ```
 
 #### NPM
@@ -60,10 +60,10 @@ $ cd vip-login-site # Change current path
 
 $ npm install # Install all dependencies
 
-$ npm run dev -- --port 8080 # Running in dev mode
+$ npm run dev -- --port 8000 # Running in dev mode
 ```
 
-Open your web browser, go to http://0.0.0.0:8080/ to view the web
+Open your web browser, go to http://0.0.0.0:8000/ to view the web
 
 ## All project
 

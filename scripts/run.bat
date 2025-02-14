@@ -8,4 +8,4 @@ python -m nltk.downloader punkt
 
 python -m nltk.downloader punkt_tab
 
-python -m fastapi dev ..\\src\\vip_login\\main.py --port 8000
+python -m fastapi dev ..\\src\\vip_login\\main.py --port 8001

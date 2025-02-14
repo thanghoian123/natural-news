@@ -24,7 +24,7 @@ DB_URL = getenv("DB_URL", DB)
 async def _get_llm_response() -> str:
     if getenv("env", "DEV") == "DEV":
         return text()
-    return "1"
+    raise NotImplementedError()
 
 
 engine = create_engine(
@@ -65,18 +65,19 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
 if getenv("env", "DEV") == "DEV":
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[
-            "http://localhost",
-            "http://localhost:5173",
-            "https://vip.naturalnews.com/"
-        ],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    allow_origins = ["http://localhost", "http://localhost:5173", "http://localhost:8000"]
+else:
+    allow_origins = ["https://vip.naturalnews.com/"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allow_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def decode_user_cookie(req: Request, session: Session = Depends(get_session)) -> User:
