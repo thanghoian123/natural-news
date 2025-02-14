@@ -190,9 +190,7 @@ async def upsert_user(
     user_statement = select(User).where(User.login == login.email).limit(1)
     user = session.exec(user_statement).one_or_none()
     if not user:
-        statement = select(Customer).where(Customer.email == login.email)
-        customer = session.exec(statement).one_or_none()
-        user = User(login=login.email, token_allow=customer.chat_tokens)
+        user = User(login=login.email)
         session.add(user)
         session.commit()
         session.refresh(user)
@@ -310,8 +308,9 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
         # Check if customer exists
         statement = select(Customer).where(Customer.loyaltylion_id == loyaltylion_id)
         customer = session.exec(statement).one_or_none()
-        
-        if customer:
+        user_statement = select(User).where(User.email == customer_data.get("email"))
+        user = session.exec(user_statement).one_or_none()
+        if customer and user:
             # Update existing customer
             customer.points_approved = customer_data.get("points_approved", 0)
             customer.points_balance = points_balance
@@ -319,12 +318,14 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
             customer.rewards_claimed = customer_data.get("rewards_claimed", 0)
             customer.blocked = customer_data.get("blocked", False)
             customer.updated_at = customer_data.get("updated_at")
+
+            # Update token
+            user.token_allow += chat_tokens
             session.commit()
         else:
             # Create new customer
             customer = Customer(
-                # id=str(uuid.uuid4()),  # HRS db
-                loyaltylion_id=loyaltylion_id,  # "customer": {"id": 6932,...}
+                loyaltylion_id=loyaltylion_id,
                 merchant_id=customer_data.get("merchant_id"),
                 email=customer_data.get("email"),
                 points_approved=customer_data.get("points_approved", 0),
@@ -336,7 +337,13 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
                 updated_at=customer_data.get("updated_at")
             )
             session.add(customer)
+
+            # Create new user
+            user = User(
+                login=customer_data.get("email"),
+                token_allow=chat_tokens
+            )
+            session.add(user)
             session.commit()
 
-    session.commit()
-    return {"message": "Webhook received", "event_type": event_type}
+        return {"message": "Webhook received", "event_type": event_type}
