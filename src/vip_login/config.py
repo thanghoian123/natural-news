@@ -12,12 +12,12 @@ TOKEN_EQUIVALENT = 10
 LOGGER = logging.getLogger("uvicorn.error")
 
 MAIL_CONFIG = ConnectionConfig(
-    MAIL_USERNAME = "neilproton@gmail.com",
-    MAIL_PASSWORD = "AINLP@@!!##",
-    MAIL_FROM = "neilproton@gmail.com",
+    MAIL_USERNAME = "nhatnguyenminh061289@gmail.com",
+    MAIL_PASSWORD = "ekzoedpfpqujisrn",
+    MAIL_FROM = "nhatnguyenminh061289@gmail.com",
     MAIL_PORT = 587,
     MAIL_SERVER = "smtp.gmail.com",
-    MAIL_FROM_NAME="Nguyen Ton",
+    MAIL_FROM_NAME="Nathan Nguyen",
     MAIL_STARTTLS = True,
     MAIL_SSL_TLS = False,
     USE_CREDENTIALS = True,
