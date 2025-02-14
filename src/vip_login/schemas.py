@@ -86,9 +86,12 @@ class SessionLogin(SQLModel, table=True):
             body=html,
             subtype=MessageType.html,
         )
-        fm = FastMail(config=MAIL_CONFIG)
-        await fm.send_message(message=message)
-        LOGGER.info(f"Session Password email sent to: {self.email}!")
+        try:
+            fm = FastMail(config=MAIL_CONFIG)
+            await fm.send_message(message=message)
+            LOGGER.info(f"Session Password email sent to: {self.email}!")
+        except Exception as e:
+            LOGGER.error(f"Met an unexpected error while sending mail: {e.args}!")
         return None
 
 

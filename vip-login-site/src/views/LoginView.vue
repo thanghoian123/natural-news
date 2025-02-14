@@ -9,7 +9,7 @@ const subscriptionButtonClicked = ref(false);
 const cookiesManager = useCookies();
 
 axios.defaults.withCredentials = true;
-axios.defaults.baseURL = "https://vip.healthrangerstore.com";
+axios.defaults.baseURL = "https://api-hrs.healthrangerstore.com";
 
 const subscriptEmail = async () => {
   const emailCheck = username.value
@@ -26,21 +26,27 @@ const subscriptEmail = async () => {
     return;
   }
   subscriptionButtonClicked.value = ref(true);
-  await axios.post(
-    "/login",
-    {
-      email: username.value,
-      session_password: "",
-    },
-    {
-      headers: {
-        "Content-Type": "application/json; charset=UTF-8"
+  try {
+
+    await axios.post(
+      "/login",
+      {
+        email: username.value,
+        session_password: "",
+      },
+      {
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8"
+        }
       }
-    }
-  );
-  nextTick(() => {
-    document.getElementById("sessionPassword").focus();
-  })
+    );
+    nextTick(() => {
+      document.getElementById("sessionPassword").focus();
+    });
+  } catch (e) {
+    console.error(e);
+    usernameError.value = "Unexpected error from server, please try again later";
+  }
 };
 
 const onLogin = async () => {
