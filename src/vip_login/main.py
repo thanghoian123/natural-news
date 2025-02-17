@@ -180,8 +180,15 @@ def decode_user_token(req: Request, session: Session = Depends(get_session)) -> 
 @app.get("/login")
 async def login(
     user: Annotated[User, Depends(decode_user_token)],
+    session: Session = Depends(get_session)
 ) -> JSONResponse:
+    statement = select(Customer).where(Customer.email == user.login).limit(1)
+    customer = session.exec(statement).one_or_none()
     ret_val = user.to_json()
+    
+    if customer:
+        ret_val.update({"token_allow": customer.chat_tokens})
+    
     print(ret_val, "--------------------------------------")
     return JSONResponse(ret_val)
 
