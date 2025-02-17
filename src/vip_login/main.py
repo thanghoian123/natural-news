@@ -221,17 +221,19 @@ async def post_chat(
     human: Human,
     session: Session = Depends(get_session),
 ) -> RedirectResponse:
-    # Check if the user has enough tokens
+    # # Check if the user has enough tokens
     statement = select(Customer).where(Customer.email == user.login).limit(1)
     customer = session.exec(statement).one_or_none()
     
-    if customer and customer.chat_tokens <= 0:
-        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="You have no tokens remaining.")
+    # if customer and customer.chat_tokens <= 0:
+    #     raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="You have no tokens remaining.")
     
-    if customer:
-        # Check if the user has enough tokens for the query
-        if customer.chat_tokens <= 0:
-            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Not enough tokens for the query.")
+    # if customer:
+    #     # Check if the user has enough tokens for the query
+    #     if customer.chat_tokens <= 0:
+    #         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Not enough tokens for the query.")
+    if user.token_remain <= 0:
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Your remaining token is exceeded!")
 
 
 
@@ -288,7 +290,7 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
         points_redeem = customer_data.get("rewards_claimed", 0)
         points_balance = points_redeem  # Assuming approved points are the current balance
         
-        # Convert points to chat tokens (1 point = 1000 chat tokens)
+        # Convert points to chat tokens (1 point = 10 chat tokens)
         chat_tokens = points_redeem * TOKEN_EQUIVALENT
         
         # Check if customer exists
