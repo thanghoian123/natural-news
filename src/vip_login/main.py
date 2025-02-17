@@ -129,10 +129,11 @@ if getenv("env", "DEV") == "DEV":
     allow_origins = ["http://localhost", "http://localhost:5173", "http://localhost:8000", "https://vip.healthrangerstore.com", "https://api-hrs.healthrangerstore.com"]
 else:
     allow_origins = ["https://vip.healthrangerstore.com/"]
+allow_origins = ["http://localhost", "http://localhost:5173", "http://localhost:8000", "https://vip.healthrangerstore.com", "https://api-hrs.healthrangerstore.com"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
