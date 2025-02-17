@@ -145,7 +145,7 @@ class User(SQLModel, table=True):
 class Customer(SQLModel, table=True):
     __tablename__ = "customer"
 
-    customer_id: Optional[int] = Field(sa_column=Column("customer_id", Integer, nullable=True), primary_key=True)  # Assuming customer_id is a unique identifier for each customer
+    customer_id: Optional[int] = Field(default=None, primary_key=True, autoincrement=True)  # Assuming customer_id is a unique identifier for each customer
     reward_id: Optional[int] = Field(sa_column=Column("reward_id", Integer, nullable=True))
     customer_email: Optional[str] = Field(sa_column=Column("customer_email", String, nullable=True))
     reward_identifier: Optional[str] = Field(sa_column=Column("reward_identifier", String, nullable=True))

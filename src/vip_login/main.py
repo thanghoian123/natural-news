@@ -196,15 +196,9 @@ async def login(
         ret_val["token_allow"] = customer.chat_tokens
     else:
         customer = Customer(
-            loyaltylion_id=str(uuid.uuid4()),  # Generate a unique ID for the customer
-            email=login.email,
-            points_approved=0,
-            points_pending=0,
-            points_spent=0,
-            points_balance=0,
-            rewards_claimed=0,
-            blocked=False,
-            chat_tokens=0
+            customer_email=login.email,
+            chat_tokens=0,  # Set the chat tokens for the new customer
+            updated_at=datetime.utcnow()
         )
         ret_val["token_allow"] = 0
         session.add(customer)
@@ -230,15 +224,9 @@ async def upsert_user(
     
     if not customer:
         customer = Customer(
-            loyaltylion_id=str(uuid.uuid4()),  # Generate a unique ID for the customer
-            email=login.email,
-            points_approved=0,
-            points_pending=0,
-            points_spent=0,
-            points_balance=0,
-            rewards_claimed=0,
-            blocked=False,
-            chat_tokens=0
+            customer_email=login.email,
+            chat_tokens=0,  # Set the chat tokens for the new customer
+            updated_at=datetime.utcnow()
         )
         session.add(customer)
         session.commit()
