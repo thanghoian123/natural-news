@@ -243,6 +243,8 @@ async def post_chat(
     # # Check if the user has enough tokens
     statement = select(Customer).where(Customer.email == user.login).limit(1)
     customer = session.exec(statement).one_or_none()
+
+    print(customer, "-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
     
     if user.token_remain <= 0:
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Your remaining token is exceeded!")
@@ -259,7 +261,7 @@ async def post_chat(
     # Calculate the token usage for the query (example: 1000 tokens for this example)
     token_usage = total_tokens  # Modify this based on the actual token usage
 
-    customer.chat_tokens -= token_usage
+    user.token_allow -= token_usage
     # Deduct tokens
     session.commit()
     assistant_message = ChatMessage(
