@@ -179,16 +179,24 @@ def decode_user_token(req: Request, session: Session = Depends(get_session)) -> 
 
 @app.get("/login")
 async def login(
-    user: Annotated[User, Depends(decode_user_token)],
-    session: Session = Depends(get_session)
+    user: Annotated[User, Depends(decode_user_token)],  # Decoding user token to get user info
+    session: Session = Depends(get_session)  # Getting the database session
 ) -> JSONResponse:
+    # Query the Customer table to get the customer data by user email
     statement = select(Customer).where(Customer.email == user.login).limit(1)
     customer = session.exec(statement).one_or_none()
+
+    # Prepare the return value based on user info
     ret_val = user.to_json()
-    
+
     if customer:
-        ret_val.update({"token_allow": customer.chat_tokens})
+        # If customer exists, update token_allow with chat_tokens from Customer
+        ret_val["token_allow"] = customer.chat_tokens
+    else:
+        # Handle the case where no customer is found with the email
+        LOGGER.warning(f"Customer with email {user.login} not found.")
     
+    # Log the return value for debugging purposes
     print(ret_val, "--------------------------------------")
     return JSONResponse(ret_val)
 
@@ -246,7 +254,7 @@ async def post_chat(
     human: Human,
     session: Session = Depends(get_session),
 ) -> RedirectResponse:
-    print(user, "====================================")
+    print(user.login, "====================================")
     # # Check if the user has enough tokens
     statement = select(Customer).where(Customer.email == user.login).limit(1)
     customer = session.exec(statement).one_or_none()
