@@ -89,10 +89,10 @@ const onLogin = async () => {
     session_password: sessionPassword.value
   });
 
-  if (response["hrs-vip"]) {
+  if (response["Authorization"]) {
     // Store the token in localStorage for future requests
-    localStorage.setItem("token", response["hrs-vip"]);
-    axios.defaults.headers["Authorization"] = `Bearer ${response["hrs-vip"]}`;
+    localStorage.setItem("token", response["Authorization"]);
+    axios.defaults.headers["Authorization"] = `${response["Authorization"]}`;
 
     // Redirect user to the chat page after successful login
     router.push({ path: "/chat", replace: true });

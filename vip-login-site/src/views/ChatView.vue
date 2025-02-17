@@ -32,7 +32,7 @@ const _check_user = async () => {
     const token = localStorage.getItem("token"); // Retrieve token from localStorage
     const responseData = (await axios.get("/login", {
       headers: {
-        Authorization: `Bearer ${token}` // Send token in Authorization header
+        Authorization: `${token}` // Send token in Authorization header
       }
     })).data;
 
@@ -48,7 +48,7 @@ const _check_messages = async () => {
     const token = localStorage.getItem("token"); // Retrieve token from localStorage
     const responseData = (await axios.get("/chat", {
       headers: {
-        Authorization: `Bearer ${token}` // Send token in Authorization header
+        Authorization: `${token}` // Send token in Authorization header
       }
     })).data;
 
@@ -93,7 +93,7 @@ const send_messages = async () => {
     {
       headers: {
         "Content-Type": "application/json;charset=UTF-8",
-        Authorization: `Bearer ${token}` // Include token in the header
+        Authorization: `${token}` // Include token in the header
       }
     }
   );
