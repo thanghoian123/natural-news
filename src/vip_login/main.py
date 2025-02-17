@@ -182,9 +182,7 @@ async def login(
     user: Annotated[User, Depends(decode_user_token)],
 ) -> JSONResponse:
     ret_val = user.to_json()
-    print("--------------------------------------")
-    print(ret_val)
-    print("--------------------------------------")
+    print(ret_val, "--------------------------------------")
     return JSONResponse(ret_val)
 
 @app.post("/login")
@@ -241,17 +239,11 @@ async def post_chat(
     human: Human,
     session: Session = Depends(get_session),
 ) -> RedirectResponse:
+    print(user, "====================================")
     # # Check if the user has enough tokens
     statement = select(Customer).where(Customer.email == user.login).limit(1)
     customer = session.exec(statement).one_or_none()
     
-    # if customer and customer.chat_tokens <= 0:
-    #     raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="You have no tokens remaining.")
-    
-    # if customer:
-    #     # Check if the user has enough tokens for the query
-    #     if customer.chat_tokens <= 0:
-    #         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Not enough tokens for the query.")
     if user.token_remain <= 0:
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Your remaining token is exceeded!")
 
@@ -263,7 +255,6 @@ async def post_chat(
         content=human.value,
         user_id=user.id,
     )
-    print(human_message.content)
     llm_response, total_tokens = await _get_llm_response(human_message)
     # Calculate the token usage for the query (example: 1000 tokens for this example)
     token_usage = total_tokens  # Modify this based on the actual token usage
