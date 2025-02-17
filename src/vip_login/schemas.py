@@ -145,24 +145,13 @@ class User(SQLModel, table=True):
 class Customer(SQLModel, table=True):
     __tablename__ = "customer"
 
-    # id: Optional[str] = Field(sa_column=Column("id", String, primary_key=True, index=True))
-    loyaltylion_id: str = Field(sa_column=Column("loyaltylion_id", String, primary_key=True, unique=True, nullable=False))  # ID from LoyaltyLion
-    merchant_id: Optional[str] = Field(sa_column=Column("merchant_id", String, nullable=True))
-    email: Optional[str] = Field(sa_column=Column("email", String, unique=True, nullable=True))
-    points_approved: int = Field(sa_column=Column("points_approved", Integer, default=0))
-    points_pending: int = Field(sa_column=Column("points_pending", Integer, default=0))
-    points_spent: int = Field(sa_column=Column("points_spent", Integer, default=0))
-    points_balance: int = Field(sa_column=Column("points_balance", Integer, default=0))  # Total points balance
-    rewards_claimed: int = Field(sa_column=Column("rewards_claimed", Integer, default=0))
-    blocked: bool = Field(sa_column=Column("blocked", Boolean, default=False))
-    enrolled_at: Optional[datetime] = Field(sa_column=Column("enrolled_at", DateTime, nullable=True))
+    customer_id: Optional[int] = Field(sa_column=Column("customer_id", Integer, nullable=True), primary_key=True)  # Assuming customer_id is a unique identifier for each customer
+    reward_id: Optional[int] = Field(sa_column=Column("reward_id", Integer, nullable=True))
+    customer_email: Optional[str] = Field(sa_column=Column("customer_email", String, nullable=True))
+    reward_identifier: Optional[str] = Field(sa_column=Column("reward_identifier", String, nullable=True))
+    customer_merchant_id: Optional[str] = Field(sa_column=Column("customer_merchant_id", String, nullable=True))
+    reward_fulfilment_id: Optional[int] = Field(sa_column=Column("reward_fulfilment_id", Integer, nullable=True))
+    
     updated_at: datetime = Field(sa_column=Column("updated_at", DateTime(timezone=True), server_default=func.now(), onupdate=func.now()))
     chat_tokens: int = Field(sa_column=Column("chat_tokens", Integer, default=0))
     
-class WebhookEvent(SQLModel, table=True):
-    __tablename__ = "webhookevent"
-
-    id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), sa_column=Column("id", String, primary_key=True))  # Generating UUID automatically
-    event_type: str = Field(sa_column=Column("event_type", String, nullable=False))  # example: "program_events/customer.points_earned"
-    payload: dict = Field(sa_column=Column("payload", JSON, nullable=False))  # raw webhook data
-    received_at: datetime = Field(sa_column=Column("received_at", DateTime(timezone=True), server_default=func.now()))

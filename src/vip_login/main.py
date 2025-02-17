@@ -21,6 +21,8 @@ import hmac
 import hashlib
 import json
 import uuid
+from datetime import datetime
+
 
 SECRET = getenv("SECRET_KEY", SECRET_KEY)
 DB_URL = getenv("DB_URL", DB)
@@ -183,7 +185,7 @@ async def login(
     session: Session = Depends(get_session)  # Getting the database session
 ) -> JSONResponse:
     # Query the Customer table to get the customer data by user email
-    statement = select(Customer).where(Customer.email == user.login).limit(1)
+    statement = select(Customer).where(Customer.customer_email == user.login).limit(1)
     customer = session.exec(statement).one_or_none()
 
     # Prepare the return value based on user info
@@ -223,7 +225,7 @@ async def upsert_user(
     TO_SEC_90_DAYS = 90 * 24 * 60 * 60
     user_statement = select(User).where(User.login == login.email).limit(1)
     user = session.exec(user_statement).one_or_none()
-    customer_statement = select(Customer).where(Customer.email == login.email).limit(1)
+    customer_statement = select(Customer).where(Customer.customer_email == login.email).limit(1)
     customer = session.exec(customer_statement).one_or_none()
     
     if not customer:
@@ -299,7 +301,7 @@ async def post_chat(
     print(req, "********************************************")
     print(user.login, "====================================")
     # # Check if the user has enough tokens
-    statement = select(Customer).where(Customer.email == user.login).limit(1)
+    statement = select(Customer).where(Customer.customer_email == user.login).limit(1)
     customer = session.exec(statement).one_or_none()
 
     print(customer, "-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
@@ -335,75 +337,61 @@ async def post_chat(
 
 @app.post("/webhook/loyaltylion")
 async def loyaltylion_webhook(request: Request, session: Session = Depends(get_session)):
-    # signature = request.headers.get("X-LoyaltyLion-Signature")
-    # if not signature:
-    #     raise HTTPException(status_code=400, detail="Missing Signature")
-    
     body = await request.body()
-    # if not verify_signature(body, signature):
-    #     raise HTTPException(status_code=401, detail="Invalid signature")
     print(body)
     print(type(body))
     data = json.loads(body)
-    event_type = data.get("topic")
-    payload = data.get("payload", {})
+    
+    # Get data from webhook
+    customer_id = data.get("customer_id")
+    reward_id = data.get("reward_id")
+    customer_email = data.get("customer_email")
+    reward_identifier = data.get("reward_identifier")
+    customer_merchant_id = data.get("customer_merchant_id")
+    reward_fulfilment_id = data.get("reward_fulfilment_id")
 
-    event = WebhookEvent(event_type=event_type, payload=payload)
-    session.add(event)
-
-    if event_type == "customer/update":
-        customer_data = payload.get("customer", {})
-        print("="*50)
-        print(customer_data)
-        print("="*50)
-        loyaltylion_id = str(customer_data.get("id"))
-        customer_email = str(customer_data.get("email"))
-        
-        points_redeem = customer_data.get("rewards_claimed", 0)
-        points_balance = points_redeem  # Assuming approved points are the current balance
-        
-        # Convert points to chat tokens (1 point = 10 chat tokens)
+    if reward_id == "204296":
+        points_redeem = 10000
         chat_tokens = points_redeem * TOKEN_EQUIVALENT
-        
-        # Check if customer exists
-        statement = select(Customer).where(Customer.email == customer_email).limit(1)
-        customer = session.exec(statement).one_or_none()
-        user_statement = select(User).where(User.login == customer_email).limit(1)
-        user = session.exec(user_statement).one_or_none()
-        if customer and user:
-            # Update existing customer
-            customer.points_approved = customer_data.get("points_approved", 0)
-            customer.points_balance = points_balance
-            customer.chat_tokens = chat_tokens  # Update chat tokens
-            customer.rewards_claimed = customer_data.get("rewards_claimed", 0)
-            customer.blocked = customer_data.get("blocked", False)
-            customer.updated_at = customer_data.get("updated_at")
+    else: chat_tokens = 0
+    #query DB
+    statement = select(Customer).where(Customer.customer_email == customer_email).limit(1)
+    customer = session.exec(statement).one_or_none()
+    user_statement = select(User).where(User.login == customer_email).limit(1)
+    user = session.exec(user_statement).one_or_none()
 
-            # Update token
-            user.token_allow += chat_tokens
-            session.commit()
-        else:
+    if customer and user:
+        customer.customer_id = customer_id
+        customer.reward_id = reward_id
+        customer.reward_identifier = reward_identifier
+        customer.customer_merchant_id = customer_merchant_id
+        customer.reward_fulfilment_id = reward_fulfilment_id
+        customer.chat_tokens += chat_tokens
+        customer.updated_at = datetime.utcnow()
+
+        # Update token
+        user.token_allow += chat_tokens
+        session.commit()
+    else:
             # Create new customer
-            customer = Customer(
-                loyaltylion_id=loyaltylion_id,
-                merchant_id=customer_data.get("merchant_id"),
-                email=customer_data.get("email"),
-                points_approved=customer_data.get("points_approved", 0),
-                points_balance=points_balance,
-                chat_tokens=chat_tokens,  # Set the chat tokens for the new customer
-                rewards_claimed=customer_data.get("rewards_claimed", 0),
-                blocked=customer_data.get("blocked", False),
-                enrolled_at=customer_data.get("enrolled_at"),
-                updated_at=customer_data.get("updated_at")
-            )
-            session.add(customer)
+        customer = Customer(
+            reward_id=reward_id,
+            customer_email=customer_email,
+            customer_id=customer_id,
+            reward_identifier=reward_identifier,
+            customer_merchant_id=customer_merchant_id,
+            reward_fulfilment_id=reward_fulfilment_id,
+            chat_tokens=chat_tokens,  # Set the chat tokens for the new customer
+            updated_at=datetime.utcnow()
+        )
+        session.add(customer)
 
-            # Create new user
-            user = User(
-                login=customer_data.get("email"),
-                token_allow=chat_tokens
-            )
-            session.add(user)
-            session.commit()
+        # Create new user
+        user = User(
+            login=customer_email,
+            token_allow=chat_tokens
+        )
+        session.add(user)
+        session.commit()
 
-    return {"message": "Webhook received", "event_type": event_type}
+    return {"message": "Webhook received", "event_type": f"User {customer_email} exchanged points"}
