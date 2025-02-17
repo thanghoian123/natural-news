@@ -1,6 +1,5 @@
 <script setup>
 import axios from "axios";
-import { useCookies } from "vue3-cookies";
 import { nextTick, ref } from "vue";
 import { RecaptchaV2 } from "vue3-recaptcha-v2";
 import router from "../router";
@@ -61,7 +60,7 @@ const subscriptEmail = async () => {
     showError("username", "Email is not valid!");
     return;
   }
-  
+
   hideError("username");
   subscriptionButtonClicked.value = true;
 
@@ -91,8 +90,11 @@ const onLogin = async () => {
   });
 
   if (response["hrs-vip"]) {
-    // Store the token in the Authorization header for future requests
+    // Store the token in localStorage for future requests
+    localStorage.setItem("token", response["hrs-vip"]);
     axios.defaults.headers["Authorization"] = `Bearer ${response["hrs-vip"]}`;
+
+    // Redirect user to the chat page after successful login
     router.push({ path: "/chat", replace: true });
   } else {
     showError("sessionPassword", "Password does not match.");

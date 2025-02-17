@@ -4,8 +4,8 @@ import { ref } from "vue";
 import Message from "../components/Message.vue";
 import User from "../components/User.vue";
 
+// Base URL
 const baseURL = import.meta.env.VITE_BASE_URL;
-
 axios.defaults.baseURL = baseURL ? baseURL : "https://api-hrs.healthrangerstore.com";
 axios.defaults.withCredentials = true;
 
@@ -29,10 +29,10 @@ const user = ref(new BackendUser("", 0));
 // Helper to fetch user data
 const _check_user = async () => {
   try {
-    const token = localStorage.getItem("token"); // assuming the token is stored in localStorage
+    const token = localStorage.getItem("token"); // Retrieve token from localStorage
     const responseData = (await axios.get("/login", {
       headers: {
-        Authorization: `Bearer ${token}` // send token in Authorization header
+        Authorization: `Bearer ${token}` // Send token in Authorization header
       }
     })).data;
 
@@ -45,10 +45,10 @@ const _check_user = async () => {
 // Helper to fetch messages
 const _check_messages = async () => {
   try {
-    const token = localStorage.getItem("token"); // assuming token is stored in localStorage
+    const token = localStorage.getItem("token"); // Retrieve token from localStorage
     const responseData = (await axios.get("/chat", {
       headers: {
-        Authorization: `Bearer ${token}` // send token in Authorization header
+        Authorization: `Bearer ${token}` // Send token in Authorization header
       }
     })).data;
 
@@ -83,8 +83,8 @@ let prompt = ref("");
 const send_messages = async () => {
   messages.value.push(new ChatMessages(prompt.value, false));
 
-  const token = localStorage.getItem("token"); // get the token from localStorage
-  
+  const token = localStorage.getItem("token"); // Retrieve token from localStorage
+
   await axios.post(
     "/chat",
     {
@@ -93,7 +93,7 @@ const send_messages = async () => {
     {
       headers: {
         "Content-Type": "application/json;charset=UTF-8",
-        Authorization: `Bearer ${token}` // include token in header
+        Authorization: `Bearer ${token}` // Include token in the header
       }
     }
   );
@@ -103,9 +103,43 @@ const send_messages = async () => {
   user.value = await _check_user();
 };
 
+// Update prompt value
 const updatePrompt = (value) => {
   prompt.value = value;
 };
+
+// Function to handle login (assuming you're already doing it elsewhere in your app)
+const subscriptEmail = async () => {
+  try {
+    const email = username.value;
+    const response = await axios.post(
+      "/login",
+      {
+        email: email,
+        session_password: "",
+      },
+      {
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8"
+        }
+      }
+    );
+
+    // Save token from response
+    const token = response.data["Authorization"];
+    localStorage.setItem("token", token); // Store the token in localStorage
+
+    // Optionally: redirect the user to the chat page after login
+    router.push({ path: "/chat", replace: true });
+  } catch (e) {
+    console.error(e);
+    usernameError.value = "Unexpected error from server, please try again later";
+  }
+};
+
+const username = ref("");
+const sessionPassword = ref("");
+const usernameError = ref("");
 </script>
 
 <template>
