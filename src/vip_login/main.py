@@ -5,12 +5,10 @@ from typing import Annotated
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from fastapi import Depends, FastAPI, Request, status
+from fastapi import Depends, FastAPI, Request, status, Header
 from fastapi.exceptions import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
-from fastapi import Response
-
 from jose import jwt
 # from lorem import text
 from sqlmodel import Session, SQLModel, create_engine, desc, select
@@ -142,38 +140,46 @@ app.add_middleware(
 )
 
 
-def decode_user_cookie(req: Request, session: Session = Depends(get_session)) -> User:
+def decode_user_token(req: Request, session: Session = Depends(get_session)) -> User:
     error = HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Please login")
-    cookie = req.cookies.get("hrs-vip")
-    print("******************************8")
-    print(req.cookies)
-    if not cookie:
+    authorization = req.headers.get("Authorization")
+    
+    if not authorization:
         raise error
-    credentials = jwt.decode(
-        cookie,
-        key=SECRET,
-        algorithms="HS512",
-        audience="subscriber",
-        issuer="HRSVip",
-    )
-    print("++++++++++++++++++++++++")
-    print(credentials)
-    print("++++++++++++++++++++++++")
+
+    # Token format: "Bearer <token>"
+    token_prefix = "Bearer "
+    if not authorization.startswith(token_prefix):
+        raise error
+    
+    token = authorization[len(token_prefix):]
+
+    try:
+        credentials = jwt.decode(
+            token,
+            key=SECRET,
+            algorithms="HS512",
+            audience="subscriber",
+            issuer="HRSVip",
+        )
+    except jwt.JWTError:
+        raise error
+
     login = credentials.get("email")
     if not login:
         raise error
+    
     statement = select(User).where(User.login == login).limit(1)
     user = session.exec(statement).one_or_none()
-    print("=========================")
-    print(user)
-    print("===========================")
     if not user:
         raise error
+    
     return user
+
 
 @app.get("/login")
 async def login(
-    user: Annotated[User, Depends(decode_user_cookie)],
+    user: Annotated[User, Depends(decode_user_token)],
 ) -> JSONResponse:
     ret_val = user.to_json()
     print("--------------------------------------")
@@ -184,8 +190,7 @@ async def login(
 @app.post("/login")
 async def upsert_user(
     login: Login,
-    session: Session = Depends(get_session),
-    response: Response = None
+    session: Session = Depends(get_session)
 ) -> JSONResponse:
     TO_SEC_90_DAYS = 90 * 24 * 60 * 60
     user_statement = select(User).where(User.login == login.email).limit(1)
@@ -215,23 +220,13 @@ async def upsert_user(
         exp = time() + TO_SEC_90_DAYS
         payload = dict(exp=exp, iss="HRSVip", aud="subscriber", email=login.email)
         token = jwt.encode(payload, key=SECRET, algorithm="HS512")
-        # Set the cookie with SameSite=None and Secure=True for cross-origin requests
-        response.set_cookie(
-            key="hrs-vip",
-            value=token,
-            httponly=True,
-            secure=True,  # Ensure the cookie is only sent over HTTPS
-            samesite="None",  # Allow cross-origin cookies
-            max_age=TO_SEC_90_DAYS,
-            expires=exp,
-        )
-        ret_val.update({"hrs-vip": token})
+        ret_val.update({"Authorization": f"Bearer {token}"})
         return JSONResponse(ret_val)
 
 
 @app.get("/chat")
 async def get_chat(
-    user: Annotated[User, Depends(decode_user_cookie)],
+    user: Annotated[User, Depends(decode_user_token)],
     session: Session = Depends(get_session),
 ) -> list[ChatMessage]:
     statement = select(ChatMessage).order_by(desc(ChatMessage.id)).where(ChatMessage.user_id == user.id).limit(10)
@@ -242,7 +237,7 @@ async def get_chat(
 @app.post("/chat")
 async def post_chat(
     req: Request,
-    user: Annotated[User, Depends(decode_user_cookie)],
+    user: Annotated[User, Depends(decode_user_token)],
     human: Human,
     session: Session = Depends(get_session),
 ) -> RedirectResponse:
