@@ -357,6 +357,7 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
         print(customer_data)
         print("="*50)
         loyaltylion_id = str(customer_data.get("id"))
+        customer_email = str(customer_data.get("email"))
         
         points_redeem = customer_data.get("rewards_claimed", 0)
         points_balance = points_redeem  # Assuming approved points are the current balance
@@ -365,9 +366,9 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
         chat_tokens = points_redeem * TOKEN_EQUIVALENT
         
         # Check if customer exists
-        statement = select(Customer).where(Customer.loyaltylion_id == loyaltylion_id)
+        statement = select(Customer).where(Customer.email == customer_email).limit(1)
         customer = session.exec(statement).one_or_none()
-        user_statement = select(User).where(User.email == customer_data.get("email"))
+        user_statement = select(User).where(User.login == customer_email).limit(1)
         user = session.exec(user_statement).one_or_none()
         if customer and user:
             # Update existing customer
