@@ -193,9 +193,24 @@ async def login(
         # If customer exists, update token_allow with chat_tokens from Customer
         ret_val["token_allow"] = customer.chat_tokens
     else:
+        customer = Customer(
+            loyaltylion_id=str(uuid.uuid4()),  # Generate a unique ID for the customer
+            email=login.email,
+            points_approved=0,
+            points_pending=0,
+            points_spent=0,
+            points_balance=0,
+            rewards_claimed=0,
+            blocked=False,
+            chat_tokens=0
+        )
+        ret_val["token_allow"] = 0
+        session.add(customer)
+        session.commit()
+        session.refresh(customer)
         # Handle the case where no customer is found with the email
         LOGGER.warning(f"Customer with email {user.login} not found.")
-    
+
     # Log the return value for debugging purposes
     print(ret_val, "--------------------------------------")
     return JSONResponse(ret_val)
@@ -281,6 +296,7 @@ async def post_chat(
     human: Human,
     session: Session = Depends(get_session),
 ) -> RedirectResponse:
+    print(req, "********************************************")
     print(user.login, "====================================")
     # # Check if the user has enough tokens
     statement = select(Customer).where(Customer.email == user.login).limit(1)
@@ -314,7 +330,7 @@ async def post_chat(
     session.add_all([human_message, assistant_message])
     session.commit()
 
-    return RedirectResponse(req.url_for("get_chat"), status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse("/chat", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.post("/webhook/loyaltylion")
