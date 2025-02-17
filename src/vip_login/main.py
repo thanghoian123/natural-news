@@ -208,13 +208,39 @@ async def upsert_user(
     TO_SEC_90_DAYS = 90 * 24 * 60 * 60
     user_statement = select(User).where(User.login == login.email).limit(1)
     user = session.exec(user_statement).one_or_none()
+    customer_statement = select(Customer).where(Customer.email == login.email).limit(1)
+    customer = session.exec(customer_statement).one_or_none()
+    
+    if not customer:
+        customer = Customer(
+            loyaltylion_id=str(uuid.uuid4()),  # Generate a unique ID for the customer
+            email=login.email,
+            points_approved=0,
+            points_pending=0,
+            points_spent=0,
+            points_balance=0,
+            rewards_claimed=0,
+            blocked=False,
+            chat_tokens=0
+        )
+        session.add(customer)
+        session.commit()
+        session.refresh(customer)
+    
     if not user:
-        user = User(login=login.email)
+        user = User(login=login.email, token_allow=0)
         session.add(user)
         session.commit()
         session.refresh(user)
+    # Ensure user token_allow matches customer chat_tokens
+    if user.token_allow != customer.chat_tokens:
+        user.token_allow = customer.chat_tokens
+        session.commit()
+        session.refresh(user)
+
     login_statement = select(SessionLogin).where(SessionLogin.email == login.email).limit(1)
     session_login = session.exec(login_statement).one_or_none()
+    
     if not login.session_password:
         if not session_login:
             session_login = SessionLogin(email=login.email)
@@ -229,6 +255,7 @@ async def upsert_user(
     else:
         if not session_login or session_login.session_password != login.session_password:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Session Login and Password does not match!")
+        
         ret_val = user.to_json()
         exp = time() + TO_SEC_90_DAYS
         payload = dict(exp=exp, iss="HRSVip", aud="subscriber", email=login.email)
@@ -276,7 +303,7 @@ async def post_chat(
     # Calculate the token usage for the query (example: 1000 tokens for this example)
     token_usage = total_tokens  # Modify this based on the actual token usage
 
-    user.token_allow -= token_usage
+    customer.chat_tokens -= token_usage
     # Deduct tokens
     session.commit()
     assistant_message = ChatMessage(

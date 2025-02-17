@@ -101,7 +101,7 @@ class User(SQLModel, table=True):
 
     id: Optional[int] = Field(sa_column=Column("id", Integer, primary_key=True, autoincrement=True))
     login: str = Field(sa_column=Column("login", String, index=True, unique=True))
-    token_allow: int = Field(nullable=True, default=100)
+    token_allow: int = Field(nullable=True, default=0)
     messages: list[ChatMessage] = Relationship(back_populates="user")
 
     @computed_field
