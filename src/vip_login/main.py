@@ -144,7 +144,7 @@ def decode_user_cookie(req: Request, session: Session = Depends(get_session)) ->
     error = HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Please login")
     cookie = req.cookies.get("hrs-vip")
     print("******************************8")
-    print(req)
+    print(req.cookies)
     if not cookie:
         raise error
     credentials = jwt.decode(
