@@ -5,7 +5,9 @@ from string import digits
 from typing import Any, Optional
 
 from fastapi_mail import FastMail, MessageSchema, MessageType
-from nltk import word_tokenize
+# from nltk import word_tokenize
+import tiktoken
+
 from pydantic import BaseModel, computed_field, EmailStr
 from sqlalchemy import Column, Integer, String
 from sqlmodel import Field, Relationship, SQLModel
@@ -39,9 +41,16 @@ class ChatMessage(SQLModel, table=True):
     
     @computed_field
     @property
+    # def token_count(self) -> int:
+    #     tokens = word_tokenize(self.content)
+    #     return len(tokens)
+    
     def token_count(self) -> int:
-        tokens = word_tokenize(self.content)
-        return len(tokens)
+        """Prints a comparison of three string encodings."""
+        encoding = tiktoken.get_encoding("o200k_base")
+        token_integers = encoding.encode(self.content)
+        num_tokens = len(token_integers)
+        return num_tokens
 
     @property
     def to_remove(self) -> bool:
