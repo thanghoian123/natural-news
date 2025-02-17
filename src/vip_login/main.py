@@ -9,6 +9,8 @@ from fastapi import Depends, FastAPI, Request, status
 from fastapi.exceptions import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
+from fastapi import Response
+
 from jose import jwt
 # from lorem import text
 from sqlmodel import Session, SQLModel, create_engine, desc, select
@@ -182,7 +184,8 @@ async def login(
 @app.post("/login")
 async def upsert_user(
     login: Login,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    response: Response = Depends()
 ) -> JSONResponse:
     TO_SEC_90_DAYS = 90 * 24 * 60 * 60
     user_statement = select(User).where(User.login == login.email).limit(1)
@@ -212,6 +215,16 @@ async def upsert_user(
         exp = time() + TO_SEC_90_DAYS
         payload = dict(exp=exp, iss="HRSVip", aud="subscriber", email=login.email)
         token = jwt.encode(payload, key=SECRET, algorithm="HS512")
+        # Set the cookie with SameSite=None and Secure=True for cross-origin requests
+        response.set_cookie(
+            key="hrs-vip",
+            value=token,
+            httponly=True,
+            secure=True,  # Ensure the cookie is only sent over HTTPS
+            samesite="None",  # Allow cross-origin cookies
+            max_age=TO_SEC_90_DAYS,
+            expires=exp,
+        )
         ret_val.update({"hrs-vip": token})
         return JSONResponse(ret_val)
 
