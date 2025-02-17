@@ -151,11 +151,17 @@ def decode_user_cookie(req: Request, session: Session = Depends(get_session)) ->
         audience="subscriber",
         issuer="HRSVip",
     )
+    print("++++++++++++++++++++++++")
+    print(credentials)
+    print("++++++++++++++++++++++++")
     login = credentials.get("email")
     if not login:
         raise error
     statement = select(User).where(User.login == login).limit(1)
     user = session.exec(statement).one_or_none()
+    print("=========================")
+    print(user)
+    print("===========================")
     if not user:
         raise error
     return user
@@ -165,6 +171,9 @@ async def login(
     user: Annotated[User, Depends(decode_user_cookie)],
 ) -> JSONResponse:
     ret_val = user.to_json()
+    print("--------------------------------------")
+    print(ret_val)
+    print("--------------------------------------")
     return JSONResponse(ret_val)
 
 @app.post("/login")
