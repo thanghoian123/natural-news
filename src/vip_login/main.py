@@ -251,9 +251,10 @@ async def upsert_user(
         print(customer.chat_tokens)
         print("=====================")
         user.token_allow = customer.chat_tokens
-        ret_val["token_allow"] = customer.chat_tokens
         session.commit()
         session.refresh(user)
+
+    
 
     login_statement = select(SessionLogin).where(SessionLogin.email == login.email).limit(1)
     session_login = session.exec(login_statement).one_or_none()
@@ -277,6 +278,7 @@ async def upsert_user(
         exp = time() + TO_SEC_90_DAYS
         payload = dict(exp=exp, iss="HRSVip", aud="subscriber", email=login.email)
         token = jwt.encode(payload, key=SECRET, algorithm="HS512")
+        ret_val["token_allow"] = customer.chat_tokens
         ret_val.update({"Authorization": f"Bearer {token}"})
         return JSONResponse(ret_val)
 
@@ -360,7 +362,7 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
     
     # Query DB
     statement = select(Customer).where(Customer.customer_email == customer_email).limit(1)
-    statement = select(Customer).where(Customer.customer_email == "neilproton@gmail.com").limit(1)
+    # statement = select(Customer).where(Customer.customer_email == "neilproton@gmail.com").limit(1)
     customer = session.exec(statement).one_or_none()
     user_statement = select(User).where(User.login == customer_email).limit(1)
     user = session.exec(user_statement).one_or_none()
@@ -385,16 +387,6 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
             reward_id=reward_id,
             customer_email=customer_email,
             customer_id=customer_id,
-            reward_identifier=reward_identifier,
-            customer_merchant_id=customer_merchant_id,
-            reward_fulfilment_id=reward_fulfilment_id,
-            chat_tokens=chat_tokens,  # Set the chat tokens for the new customer
-            updated_at=datetime.utcnow()
-        )
-        customer = Customer(
-            reward_id=1111111,
-            customer_email="tuan.ton@gmail.com",
-            customer_id=222222,
             reward_identifier=reward_identifier,
             customer_merchant_id=customer_merchant_id,
             reward_fulfilment_id=reward_fulfilment_id,
