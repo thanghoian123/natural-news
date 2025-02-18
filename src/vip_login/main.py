@@ -90,7 +90,7 @@ async def _get_llm_response(request: ChatMessage) -> str:
 
 engine = create_engine(
     url=DB_URL,
-    echo=False,
+    echo=True,
     connect_args={"check_same_thread": False},
 )
 
@@ -360,6 +360,7 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
     
     # Query DB
     statement = select(Customer).where(Customer.customer_email == customer_email).limit(1)
+    statement = select(Customer).where(Customer.customer_email == "neilproton@gmail.com").limit(1)
     customer = session.exec(statement).one_or_none()
     user_statement = select(User).where(User.login == customer_email).limit(1)
     user = session.exec(user_statement).one_or_none()
@@ -384,6 +385,16 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
             reward_id=reward_id,
             customer_email=customer_email,
             customer_id=customer_id,
+            reward_identifier=reward_identifier,
+            customer_merchant_id=customer_merchant_id,
+            reward_fulfilment_id=reward_fulfilment_id,
+            chat_tokens=chat_tokens,  # Set the chat tokens for the new customer
+            updated_at=datetime.utcnow()
+        )
+        customer = Customer(
+            reward_id=1111111,
+            customer_email="tuan.ton@gmail.com",
+            customer_id=222222,
             reward_identifier=reward_identifier,
             customer_merchant_id=customer_merchant_id,
             reward_fulfilment_id=reward_fulfilment_id,
