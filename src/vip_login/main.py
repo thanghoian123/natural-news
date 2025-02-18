@@ -351,18 +351,20 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
     reward_fulfilment_id = data.get("reward_fulfilment_id")
 
     if reward_id == 204296:
-        print(type(reward_id),'---reward_id--')
+        print(type(reward_id), '---reward_id--')
 
         points_redeem = 10000
         chat_tokens = points_redeem * TOKEN_EQUIVALENT
-    else: chat_tokens = 0
-    #query DB
+    else:
+        chat_tokens = 0
+    
+    # Query DB
     statement = select(Customer).where(Customer.customer_email == customer_email).limit(1)
     customer = session.exec(statement).one_or_none()
     user_statement = select(User).where(User.login == customer_email).limit(1)
     user = session.exec(user_statement).one_or_none()
-    print(customer,'---customer--')
-    print(user,'---user--')
+    print(customer, '---customer--')
+    print(user, '---user--')
 
     if customer and user:
         customer.customer_id = customer_id
@@ -377,7 +379,7 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
         user.token_allow += chat_tokens
         session.commit()
     else:
-            # Create new customer
+        # Create new customer
         customer = Customer(
             reward_id=reward_id,
             customer_email=customer_email,
@@ -396,6 +398,18 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
             token_allow=chat_tokens
         )
         session.add(user)
-        session.commit()
+
+       
+
+        try:
+            session.commit()
+            # Debug: Check session state
+            print("Session new objects:", session.new)
+            print("Session dirty objects:", session.dirty)
+        except Exception as e:
+            session.rollback()  # Rollback transaction in case of error
+            print(f"Error during commit: {e}")
+            raise HTTPException(status_code=500, detail="Database error")
 
     return {"message": "Webhook received", "event_type": f"User {customer_email} exchanged points"}
+
