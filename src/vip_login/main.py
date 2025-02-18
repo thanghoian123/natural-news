@@ -225,35 +225,35 @@ async def upsert_user(
     customer_statement = select(Customer).where(Customer.customer_email == login.email).limit(1)
     customer = session.exec(customer_statement).one_or_none()
     
-    if not customer:
-        customer = Customer(
-            customer_email=login.email,
-            chat_tokens=0,  # Set the chat tokens for the new customer
-            updated_at=datetime.utcnow()
-        )
-        print("=====not-customer=====================",customer)
+    # if not customer:
+    #     customer = Customer(
+    #         customer_email=login.email,
+    #         chat_tokens=0,  # Set the chat tokens for the new customer
+    #         updated_at=datetime.utcnow()
+    #     )
+    #     print("=====not-customer=====================",customer)
 
-        session.add(customer)
-        session.commit()
-        session.refresh(customer)
+    #     session.add(customer)
+    #     session.commit()
+    #     session.refresh(customer)
     
-    if not user:
+    # if not user:
 
-        user = User(login=login.email, token_allow=0)
-        print("=====not-user=====================",user)
+    #     user = User(login=login.email, token_allow=0)
+    #     print("=====not-user=====================",user)
 
-        session.add(user)
-        session.commit()
-        session.refresh(user)
+    #     session.add(user)
+    #     session.commit()
+    #     session.refresh(user)
     # Ensure user token_allow matches customer chat_tokens
-    if user.token_allow != customer.chat_tokens:
-        print("==========================")
-        print(user.token_allow)
-        print(customer.chat_tokens)
-        print("=====================")
-        user.token_allow = customer.chat_tokens
-        session.commit()
-        session.refresh(user)
+    # if user.token_allow != customer.chat_tokens:
+    #     print("==========================")
+    #     print(user.token_allow)
+    #     print(customer.chat_tokens)
+    #     print("=====================")
+    #     user.token_allow = customer.chat_tokens
+    #     session.commit()
+    #     session.refresh(user)
 
     
 
