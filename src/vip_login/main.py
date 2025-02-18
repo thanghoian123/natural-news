@@ -381,7 +381,7 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
 
         # Update token
         user.token_allow += chat_tokens
-        session.commit()
+        # session.commit()
     else:
         # Create new customer
         customer = Customer(
@@ -405,15 +405,15 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
 
        
 
-        try:
-            session.commit()
-            # Debug: Check session state
-            print("Session new objects:", session.new)
-            print("Session dirty objects:", session.dirty)
-        except Exception as e:
-            session.rollback()  # Rollback transaction in case of error
-            print(f"Error during commit: {e}")
-            raise HTTPException(status_code=500, detail="Database error")
+    try:
+        session.commit()
+        # Debug: Check session state
+        print("Session new objects:", session.new)
+        print("Session dirty objects:", session.dirty)
+    except Exception as e:
+        session.rollback()  # Rollback transaction in case of error
+        print(f"Error during commit: {e}")
+        raise HTTPException(status_code=500, detail="Database error")
 
     return {"message": "Webhook received", "event_type": f"User {customer_email} exchanged points"}
 

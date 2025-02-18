@@ -12,6 +12,10 @@ RUN python3 -m pip install --upgrade pip
 
 RUN python3 -m pip install -r /app/requirements.txt
 
+RUN apt update 
+
+RUN apt install sqlite3
+
 # RUN python3 -m nltk.downloader punkt
 
 # RUN python3 -m nltk.downloader punkt_tab
