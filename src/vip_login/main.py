@@ -348,7 +348,7 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
     customer_merchant_id = data.get("customer_merchant_id")
     reward_fulfilment_id = data.get("reward_fulfilment_id")
 
-    if reward_id == "204296":
+    if reward_id == 204296:
         points_redeem = 10000
         chat_tokens = points_redeem * TOKEN_EQUIVALENT
     else: chat_tokens = 0
