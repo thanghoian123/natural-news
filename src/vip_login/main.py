@@ -218,6 +218,7 @@ async def upsert_user(
     login: Login,
     session: Session = Depends(get_session)
 ) -> JSONResponse:
+    print(login, "========Login+++++++++++")
     TO_SEC_90_DAYS = 90 * 24 * 60 * 60
     user_statement = select(User).where(User.login == login.email).limit(1)
     user = session.exec(user_statement).one_or_none()
