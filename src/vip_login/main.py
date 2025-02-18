@@ -228,18 +228,28 @@ async def upsert_user(
             chat_tokens=0,  # Set the chat tokens for the new customer
             updated_at=datetime.utcnow()
         )
+        print("=====not-customer=====================",customer)
+
         session.add(customer)
         session.commit()
         session.refresh(customer)
     
     if not user:
+
         user = User(login=login.email, token_allow=0)
+        print("=====not-user=====================",user)
+
         session.add(user)
         session.commit()
         session.refresh(user)
     # Ensure user token_allow matches customer chat_tokens
     if user.token_allow != customer.chat_tokens:
+        print("==========================")
+        print(user.token_allow)
+        print(customer.chat_tokens)
+        print("=====================")
         user.token_allow = customer.chat_tokens
+        ret_val["token_allow"] = customer.chat_tokens
         session.commit()
         session.refresh(user)
 
