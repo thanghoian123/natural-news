@@ -90,7 +90,7 @@ async def _get_llm_response(request: ChatMessage) -> str:
 
 engine = create_engine(
     url=DB_URL,
-    echo=True,
+    echo=False,
     connect_args={"check_same_thread": False},
 )
 
@@ -190,16 +190,18 @@ async def login(
 
     # Prepare the return value based on user info
     ret_val = user.to_json()
-
+    print("=-=-=-=-=-=+_+_+_+_+_+_+_+_", customer)
     if customer:
         # If customer exists, update token_allow with chat_tokens from Customer
         ret_val["token_allow"] = customer.chat_tokens
     else:
+
         customer = Customer(
             customer_email=login.email,
             chat_tokens=0,  # Set the chat tokens for the new customer
             updated_at=datetime.utcnow()
         )
+        print("---not_customer-post-login----",customer)
         ret_val["token_allow"] = 0
         session.add(customer)
         session.commit()
@@ -349,6 +351,8 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
     reward_fulfilment_id = data.get("reward_fulfilment_id")
 
     if reward_id == 204296:
+        print(type(reward_id),'---reward_id--')
+
         points_redeem = 10000
         chat_tokens = points_redeem * TOKEN_EQUIVALENT
     else: chat_tokens = 0
@@ -357,6 +361,8 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
     customer = session.exec(statement).one_or_none()
     user_statement = select(User).where(User.login == customer_email).limit(1)
     user = session.exec(user_statement).one_or_none()
+    print(customer,'---customer--')
+    print(user,'---user--')
 
     if customer and user:
         customer.customer_id = customer_id
