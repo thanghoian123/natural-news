@@ -1,6 +1,8 @@
 import axios from "axios";
 import { createRouter, createWebHistory } from "vue-router";
+import IngredientChecker from "../views/IngredientChecker.vue";
 import ChatView from "../views/ChatView.vue";
+
 import LoginView from "../views/LoginView.vue";
 
 const baseURL = import.meta.env.VITE_BASE_URL
@@ -34,6 +36,11 @@ const router = createRouter({
     {
       path: "/chat",
       name: "chat",
+      component: ChatView,
+    },
+    {
+      path: "/ingredient-checker",
+      name: "ingredient-checker",
       component: ChatView,
     },
   ],

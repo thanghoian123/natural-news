@@ -27,12 +27,13 @@ export default {
     max-width: 90%;
   }
   .assistant {
-    background-color: #000;
+    background-color: #000000;
     float: left;
+    color: #ffffff;
   }
   .human {
     float: right;
-    background-color: #222;
-    color: #777;
+    background-color: #ffffff;
+    color: #000000;
   }
 </style>
