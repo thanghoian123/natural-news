@@ -37,11 +37,6 @@ class AnalyzingAgent(Agent):
     def __init__(self, name, prompt, running_condition=""):
         super().__init__(name)
         self.prompt = prompt
-        # self.client = OpenAI(
-        #     base_url="http://35.170.240.5:8081",
-        #     api_key="aRMEhvlClTxqYosKSPrJ7BXCQQLrPy1Rf5e6SY2JMWgKgO1P0QaVUbOMCWvdWcDo"
-        # )
-        # self.model = 'LLaMA_CPP'
         self.client = OpenAI(
             base_url="http://35.170.240.5:8081",
             api_key="aRMEhvlClTxqYosKSPrJ7BXCQQLrPy1Rf5e6SY2JMWgKgO1P0QaVUbOMCWvdWcDo"

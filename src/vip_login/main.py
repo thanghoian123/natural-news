@@ -259,8 +259,6 @@ async def upsert_user(
     #     session.commit()
     #     session.refresh(user)
 
-    
-
     login_statement = select(SessionLogin).where(SessionLogin.email == login.email).limit(1)
     session_login = session.exec(login_statement).one_or_none()
     
@@ -374,7 +372,6 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
 
         # Update token
         user.token_allow += chat_tokens
-        # session.commit()
     else:
         # Create new customer
         customer = Customer(
@@ -395,8 +392,6 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
             token_allow=chat_tokens
         )
         session.add(user)
-
-       
 
     try:
         session.commit()
@@ -448,7 +443,6 @@ async def post_chat(
         content=human.value,
         user_id=user.id,
     )
-    # if normalize_result(characteristic) == "good":
     good_workflow_agents = get_good_workflow(human_message.content)
     analysis_workflow = Workflow(good_workflow_agents)
     # elif normalize_result(characteristic) == "bad":
