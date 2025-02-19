@@ -24,9 +24,9 @@ import uuid
 from datetime import datetime
 
 import time
-from agents import AnalyzingAgent, InputAgent
-from utils import normalize_result
-from workflows import get_good_workflow, get_bad_workflow
+# from agents import AnalyzingAgent, InputAgent
+from vip_login.utils import normalize_result
+from vip_login.workflows import get_good_workflow, get_bad_workflow
 from pathlib import Path
 import os
 

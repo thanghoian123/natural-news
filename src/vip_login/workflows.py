@@ -1,4 +1,4 @@
-from agents import AnalyzingAgent
+from vip_login.agents import AnalyzingAgent
 
 
 def get_good_workflow(topic: str):
