@@ -23,6 +23,13 @@ import json
 import uuid
 from datetime import datetime
 
+import time
+from agents import AnalyzingAgent, InputAgent
+from utils import normalize_result
+from workflows import get_good_workflow, get_bad_workflow
+from pathlib import Path
+import os
+
 
 SECRET = getenv("SECRET_KEY", SECRET_KEY)
 DB_URL = getenv("DB_URL", DB)
@@ -179,6 +186,7 @@ def decode_user_token(req: Request, session: Session = Depends(get_session)) -> 
     return user
 
 
+
 @app.get("/login")
 async def login(
     user: Annotated[User, Depends(decode_user_token)],  # Decoding user token to get user info
@@ -190,7 +198,6 @@ async def login(
 
     # Prepare the return value based on user info
     ret_val = user.to_json()
-    print("=-=-=-=-=-=+_+_+_+_+_+_+_+_", customer)
     if customer:
         # If customer exists, update token_allow with chat_tokens from Customer
         ret_val["token_allow"] = customer.chat_tokens
@@ -201,7 +208,6 @@ async def login(
             chat_tokens=0,  # Set the chat tokens for the new customer
             updated_at=datetime.utcnow()
         )
-        print("---not_customer-post-login----",customer)
         ret_val["token_allow"] = 0
         session.add(customer)
         session.commit()
@@ -210,7 +216,6 @@ async def login(
         LOGGER.warning(f"Customer with email {user.login} not found.")
 
     # Log the return value for debugging purposes
-    print(ret_val, "--------------------------------------")
     return JSONResponse(ret_val)
 
 @app.post("/login")
@@ -301,18 +306,12 @@ async def post_chat(
     human: Human,
     session: Session = Depends(get_session),
 ) -> RedirectResponse:
-    print(req, "********************************************")
-    print(user.login, "====================================")
     # # Check if the user has enough tokens
     statement = select(Customer).where(Customer.customer_email == user.login).limit(1)
     customer = session.exec(statement).one_or_none()
-
-    print(customer, "-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
     
     if user.token_remain <= 0:
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Your remaining token is exceeded!")
-
-
 
     # Proceed with sending the query and getting a response
     human_message = ChatMessage(
@@ -354,8 +353,6 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
     reward_fulfilment_id = data.get("reward_fulfilment_id")
 
     if reward_id == 204296:
-        print(type(reward_id), '---reward_id--')
-
         points_redeem = 10000
         chat_tokens = points_redeem * TOKEN_EQUIVALENT
     else:
@@ -363,12 +360,9 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
     
     # Query DB
     statement = select(Customer).where(Customer.customer_email == customer_email).limit(1)
-    # statement = select(Customer).where(Customer.customer_email == "neilproton@gmail.com").limit(1)
     customer = session.exec(statement).one_or_none()
     user_statement = select(User).where(User.login == customer_email).limit(1)
     user = session.exec(user_statement).one_or_none()
-    print(customer, '---customer--')
-    print(user, '---user--')
 
     if customer and user:
         customer.customer_id = customer_id
@@ -407,9 +401,6 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
 
     try:
         session.commit()
-        # Debug: Check session state
-        print("Session new objects:", session.new)
-        print("Session dirty objects:", session.dirty)
     except Exception as e:
         session.rollback()  # Rollback transaction in case of error
         print(f"Error during commit: {e}")
@@ -417,3 +408,67 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
 
     return {"message": "Webhook received", "event_type": f"User {customer_email} exchanged points"}
 
+
+
+class Workflow:
+    def __init__(self, agents):
+        self.agents = agents
+ 
+    def run(self, input_data):
+        current_data = input_data
+        current_status = f""
+        for agent in self.agents:
+            agent.perceive(current_data)
+            current_data = agent.act()
+            if agent.name == "AnalyzingAgent":
+                analyzer_result = current_data
+                main_analyser_result = analyzer_result.split(" ")[0]
+            elif agent.name != "InputAgent":
+                current_status += f"\n\n{current_data}"
+
+        return current_status if current_status != "" else analyzer_result
+
+
+@app.post("/ingredient-chat")
+async def post_chat(
+    req: Request,
+    user: Annotated[User, Depends(decode_user_token)],
+    human: Human,
+    session: Session = Depends(get_session),
+) -> RedirectResponse:
+    # # Check if the user has enough tokens
+    statement = select(Customer).where(Customer.customer_email == user.login).limit(1)
+    customer = session.exec(statement).one_or_none()
+    
+    if user.token_remain <= 0:
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Your remaining token is exceeded!")
+    
+    # Proceed with sending the query and getting a response
+    human_message = ChatMessage(
+        is_llm=False,
+        content=human.value,
+        user_id=user.id,
+    )
+    # if normalize_result(characteristic) == "good":
+    good_workflow_agents = get_good_workflow(human_message.content)
+    analysis_workflow = Workflow(good_workflow_agents)
+    # elif normalize_result(characteristic) == "bad":
+    #     bad_workflow_agents = get_bad_workflow(topic)
+    #     analysis_workflow = Workflow(bad_workflow_agents)
+
+    llm_response, total_tokens = analysis_workflow.run(human_message.content)
+    # Calculate the token usage for the query (example: 1000 tokens for this example)
+    token_usage = total_tokens  # Modify this based on the actual token usage
+
+    customer.chat_tokens -= token_usage
+    # Deduct tokens
+    session.commit()
+    assistant_message = ChatMessage(
+        is_llm=True,
+        content=llm_response,
+        user_id=user.id,
+    )
+    session.add_all([human_message, assistant_message])
+    session.commit()
+
+    return RedirectResponse("/ingredient-chat", status_code=status.HTTP_303_SEE_OTHER)
