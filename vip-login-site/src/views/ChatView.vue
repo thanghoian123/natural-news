@@ -139,11 +139,6 @@ const subscriptEmail = async () => {
   }
 };
 
-// Navigation to /giredent
-const navigateToGiredent = () => {
-  router.push("/ingredient-checker");  // Navigate to '/giredent' route
-};
-
 const username = ref("");
 const sessionPassword = ref("");
 const usernameError = ref("");
@@ -152,8 +147,6 @@ const usernameError = ref("");
 <template>
   <div class="chat-view">
     <!-- Navigation button -->
-    <button @click="navigateToGiredent" class="btn-navigate">Go to Giredent</button>
-
     <User :username="user.username" :token-remain="user.tokenRemain" />
     <div class="chat-area" v-if="user.username">
       <div v-for="message in messages" :key="message.content">
@@ -170,7 +163,7 @@ const usernameError = ref("");
 
 <style scoped>
 .chat-view {
-  width: 768px;
+  width:  100%;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -191,14 +184,16 @@ const usernameError = ref("");
   border: 1px solid #dfe1e5;
   box-shadow: 0px 2px 8px 0px rgba(60, 64, 67, 0.25);
   border-radius: 24px;
-  width: 768px;
+  width: 100%;
   padding: 4px;
   margin-bottom: 30px;
 }
 
 #prompt {
   border: none;
-  width: 690px;
+  width: 100%;
+
+  /* width: 690px; */
   margin-left: 25px;
   overflow: hidden;
   resize: none;

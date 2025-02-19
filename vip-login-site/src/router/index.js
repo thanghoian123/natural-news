@@ -43,6 +43,11 @@ const router = createRouter({
       name: "ingredient-checker",
       component: ChatView,
     },
+    {
+      path: "/video-report",
+      name: "video-report",
+      component: ChatView,
+    },
   ],
 })
 

@@ -4,6 +4,7 @@ import { nextTick, ref } from "vue";
 import { RecaptchaV2 } from "vue3-recaptcha-v2";
 import router from "../router";
 
+console.log('dcmm')
 const subscriptionButtonClicked = ref(false);
 const baseURL = import.meta.env.VITE_BASE_URL;
 

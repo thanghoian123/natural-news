@@ -19,7 +19,6 @@ export default {
 
 <template>
   <p v-if="username" class="greeting-user">Hello <span class="text-bold">{{ username }}</span>, You have {{ tokenRemain }} token(s) left!</p>
-  <button v-else="" @click="goToLogin" class="btn-login greeting-user">Go to Login</button>
 </template>
 
 <style scoped>

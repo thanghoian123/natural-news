@@ -1,21 +1,26 @@
-<script setup>
-import { RouterView } from "vue-router";
-</script>
-
 <template>
-  <header>
-    
-    <div class="wrapper">
-      <img alt="logo" class="logo" src="@/assets/UI-NN-Logo-Independent-Humanitarian-Peace.svg" height="55" />
-    </div>
-  </header>
-
-  <RouterView />
+    <Layout v-if="isLayoutRoute">
+      <router-view />
+    </Layout>
+    <router-view v-else />
 </template>
 
-<style scoped>
-.wrapper {
-  position: absolute;
-  top: 4px;
-}
-</style>
+<script>
+import { useRoute } from "vue-router";
+import { computed } from "vue";
+import Layout from "./components/Layout.vue";
+
+export default {
+  components: { Layout },
+  setup() {
+    const route = useRoute();
+
+    // Show layout only for specific routes
+    const isLayoutRoute = computed(() =>
+      ["/video-report","/chat", "/ingredient-checker"].includes(route.path)
+    );
+
+    return { isLayoutRoute };
+  },
+};
+</script>
