@@ -1,6 +1,7 @@
 <script setup>
 import axios from "axios";
 import { ref } from "vue";
+import { useRouter } from "vue-router";  // Importing useRouter
 import Message from "../components/Message.vue";
 import User from "../components/User.vue";
 
@@ -25,6 +26,7 @@ class BackendUser {
 }
 
 const user = ref(new BackendUser("", 0));
+const router = useRouter(); // Initialize router
 
 // Helper to fetch user data
 const _check_user = async () => {
@@ -159,16 +161,19 @@ const usernameError = ref("");
 
 <style scoped>
 .chat-view {
-  width: 768px;
+  width:  100%;
   height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
+
 .chat-area {
   width: 100%;
   overflow-y: scroll;
   flex-grow: 1;
 }
+
 .prompt-area {
   display: flex;
   z-index: 3;
@@ -177,22 +182,43 @@ const usernameError = ref("");
   border: 1px solid #dfe1e5;
   box-shadow: 0px 2px 8px 0px rgba(60, 64, 67, 0.25);
   border-radius: 24px;
-  width: 768px;
+  width: 100%;
   padding: 4px;
   margin-bottom: 30px;
 }
+
 #prompt {
   border: none;
-  width: 690px;
+  width: 100%;
+
+  /* width: 690px; */
   margin-left: 25px;
   overflow: hidden;
   resize: none;
   padding: 2px 20px;
 }
+
 .btn-prompt {
   width: 15px;
   margin-left: 0.5rem;
   border: none;
   background: url(../assets/enter.svg) no-repeat center center;
+}
+
+.btn-navigate {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.btn-navigate:hover {
+  background-color: #0056b3;
 }
 </style>
