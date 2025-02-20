@@ -146,7 +146,6 @@ const usernameError = ref("");
 
 <template>
   <div class="chat-view">
-    <!-- Navigation button -->
     <User :username="user.username" :token-remain="user.tokenRemain" />
     <div class="chat-area" v-if="user.username">
       <div v-for="message in messages" :key="message.content">
@@ -159,7 +158,6 @@ const usernameError = ref("");
     </div>
   </div>
 </template>
-
 
 <style scoped>
 .chat-view {
