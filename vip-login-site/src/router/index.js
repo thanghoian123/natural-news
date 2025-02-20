@@ -4,6 +4,8 @@ import IngredientChecker from "../views/IngredientChecker.vue";
 import ChatView from "../views/ChatView.vue";
 
 import LoginView from "../views/LoginView.vue";
+import HomeView from "@/views/HomeView.vue";
+import VideoDetailView from "@/views/VideoDetailView.vue";
 
 const baseURL = import.meta.env.VITE_BASE_URL
 
@@ -37,17 +39,34 @@ const router = createRouter({
       path: "/chat",
       name: "chat",
       component: ChatView,
+      meta: {
+        requiresAuth: true,
+      },
     },
     {
       path: "/ingredient-checker",
       name: "ingredient-checker",
       component: ChatView,
+      meta: {
+        requiresAuth: true,
+      },
     },
     {
       path: "/video-report",
       name: "video-report",
-      component: ChatView,
+      component: HomeView,
+      meta: {
+        requiresAuth: true,
+      },
     },
+    {
+      path: '/video-report/:id', // Dynamic route matching video ID
+      name: 'VideoReport',
+      component: VideoDetailView,
+      meta: {
+        requiresAuth: true,
+      }
+    }
   ],
 })
 

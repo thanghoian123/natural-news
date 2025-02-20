@@ -35,6 +35,7 @@ DB_URL = getenv("DB_URL", DB)
 TOKEN_EQUIVALENT = getenv("TOKEN_EQUIVALENT", TOKEN_EQUIVALENT)
 LOYALTY_WEBHOOK_SECRET = getenv("LOYALTY_WEBHOOK_SECRET", LOYALTY_WEBHOOK_SECRET)
 
+########-------LLM model steup------#########
 def initialize_client_and_model(llm_selection):
     """Initialize the client and model based on the selected LLM engine."""
     if llm_selection == "Enoch-RC-14-128K":
@@ -44,15 +45,6 @@ def initialize_client_and_model(llm_selection):
         )
         model = 'LLaMA_CPP'
     return client, model
-
-def verify_signature(request_body: bytes, received_signature: str):
-    #Verify the webhook request using HMAC-SHA256
-    computed_signature = hmac.new(
-        key=LOYALTY_WEBHOOK_SECRET.encode(),
-        msg=request_body,
-        digestmod=hashlib.sha256
-    ).hexdigest()
-    return hmac.compare_digest(computed_signature, received_signature)
 
 async def _get_llm_response(request: ChatMessage) -> str:
     client, model = initialize_client_and_model("Enoch-RC-14-128K")
@@ -94,18 +86,41 @@ async def _get_llm_response(request: ChatMessage) -> str:
     total_tokens = not_stream.usage.total_tokens
     return response, total_tokens
 
+class Workflow:
+    def __init__(self, agents):
+        self.agents = agents
+ 
+    def run(self, input_data):
+        current_data = input_data
+        current_status = f""
+        for agent in self.agents:
+            agent.perceive(current_data)
+            current_data = agent.act()
+            if agent.name == "AnalyzingAgent":
+                analyzer_result = current_data
+                main_analyser_result = analyzer_result.split(" ")[0]
+            elif agent.name != "InputAgent":
+                current_status += f"\n\n{current_data}"
+
+        return current_status if current_status != "" else analyzer_result
+########-------LLM model steup------#########
+
+########-------Database init------#########
 engine = create_engine(
     url=DB_URL,
     echo=True,
     connect_args={"check_same_thread": False},
 )
 
-
 def get_session():
     with Session(engine) as session:
         yield session
 
+def create_all():
+    SQLModel.metadata.create_all(engine)
+########-------Database init------#########
 
+########-------Cron job------#########
 def monthly_clean_messages():
     with Session(engine) as session:
         statement = select(ChatMessage)
@@ -115,10 +130,16 @@ def monthly_clean_messages():
                 session.delete(msg)
         session.commit()
 
-
-def create_all():
-    SQLModel.metadata.create_all(engine)
-
+def daily_crawl_videos():
+    with Session(engine) as session:
+        statement = select(VideoCreator)
+        video_creators = session.exec(statement).one_or_none()
+        if not video_creators:
+            video_creators = VideoCreator(name="BrightLearn")
+            session.add(video_creators)
+            session.commit()
+            session.refresh(video_creators)
+        video_creators.pull(session)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -126,9 +147,11 @@ async def lifespan(app: FastAPI):
     background_task = BackgroundScheduler()
     cron = CronTrigger(hour=0)
     background_task.add_job(func=monthly_clean_messages, trigger=cron)
+    background_task.add_job(func=daily_crawl_videos, trigger=cron)
     background_task.start()
     yield
     background_task.shutdown()
+########-------Cron job------#########
 
 
 app = FastAPI(lifespan=lifespan)
@@ -185,6 +208,7 @@ def decode_user_token(req: Request, session: Session = Depends(get_session)) -> 
     return user
 
 
+########-------/Login------#########
 
 @app.get("/login")
 async def login(
@@ -284,8 +308,9 @@ async def upsert_user(
         ret_val["token_allow"] = customer.chat_tokens
         ret_val.update({"Authorization": f"Bearer {token}"})
         return JSONResponse(ret_val)
+########-------/Login------#########
 
-
+########-------/chat##/ingredient-checker------#########
 @app.get("/chat")
 async def get_chat(
     user: Annotated[User, Depends(decode_user_token)],
@@ -294,7 +319,6 @@ async def get_chat(
     statement = select(ChatMessage).order_by(desc(ChatMessage.id)).where(ChatMessage.user_id == user.id).limit(10)
     messages = session.exec(statement)
     return messages
-
 
 @app.post("/chat")
 async def post_chat(
@@ -333,7 +357,51 @@ async def post_chat(
 
     return RedirectResponse("/chat", status_code=status.HTTP_303_SEE_OTHER)
 
+@app.post("/ingredient-chat")
+async def post_chat(
+    req: Request,
+    user: Annotated[User, Depends(decode_user_token)],
+    human: Human,
+    session: Session = Depends(get_session),
+) -> RedirectResponse:
+    # # Check if the user has enough tokens
+    statement = select(Customer).where(Customer.customer_email == user.login).limit(1)
+    customer = session.exec(statement).one_or_none()
+    
+    if user.token_remain <= 0:
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Your remaining token is exceeded!")
+    
+    # Proceed with sending the query and getting a response
+    human_message = ChatMessage(
+        is_llm=False,
+        content=human.value,
+        user_id=user.id,
+    )
+    good_workflow_agents = get_good_workflow(human_message.content)
+    analysis_workflow = Workflow(good_workflow_agents)
+    # elif normalize_result(characteristic) == "bad":
+    #     bad_workflow_agents = get_bad_workflow(topic)
+    #     analysis_workflow = Workflow(bad_workflow_agents)
 
+    llm_response, total_tokens = analysis_workflow.run(human_message.content)
+    # Calculate the token usage for the query (example: 1000 tokens for this example)
+    token_usage = total_tokens  # Modify this based on the actual token usage
+
+    customer.chat_tokens -= token_usage
+    # Deduct tokens
+    session.commit()
+    assistant_message = ChatMessage(
+        is_llm=True,
+        content=llm_response,
+        user_id=user.id,
+    )
+    session.add_all([human_message, assistant_message])
+    session.commit()
+
+    return RedirectResponse("/ingredient-chat", status_code=status.HTTP_303_SEE_OTHER)
+########-------/chat##/ingredient-checker------#########
+
+########-------Webhook------#########
 @app.post("/webhook/loyaltylion")
 async def loyaltylion_webhook(request: Request, session: Session = Depends(get_session)):
     body = await request.body()
@@ -401,67 +469,22 @@ async def loyaltylion_webhook(request: Request, session: Session = Depends(get_s
         raise HTTPException(status_code=500, detail="Database error")
 
     return {"message": "Webhook received", "event_type": f"User {customer_email} exchanged points"}
+########-------Webhook------#########
 
-
-
-class Workflow:
-    def __init__(self, agents):
-        self.agents = agents
- 
-    def run(self, input_data):
-        current_data = input_data
-        current_status = f""
-        for agent in self.agents:
-            agent.perceive(current_data)
-            current_data = agent.act()
-            if agent.name == "AnalyzingAgent":
-                analyzer_result = current_data
-                main_analyser_result = analyzer_result.split(" ")[0]
-            elif agent.name != "InputAgent":
-                current_status += f"\n\n{current_data}"
-
-        return current_status if current_status != "" else analyzer_result
-
-
-@app.post("/ingredient-chat")
-async def post_chat(
-    req: Request,
+########-------BritonVideos------#########
+@app.get("/videos")
+async def get_videos(
     user: Annotated[User, Depends(decode_user_token)],
-    human: Human,
     session: Session = Depends(get_session),
-) -> RedirectResponse:
-    # # Check if the user has enough tokens
-    statement = select(Customer).where(Customer.customer_email == user.login).limit(1)
-    customer = session.exec(statement).one_or_none()
-    
-    if user.token_remain <= 0:
-        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Your remaining token is exceeded!")
-    
-    # Proceed with sending the query and getting a response
-    human_message = ChatMessage(
-        is_llm=False,
-        content=human.value,
-        user_id=user.id,
-    )
-    good_workflow_agents = get_good_workflow(human_message.content)
-    analysis_workflow = Workflow(good_workflow_agents)
-    # elif normalize_result(characteristic) == "bad":
-    #     bad_workflow_agents = get_bad_workflow(topic)
-    #     analysis_workflow = Workflow(bad_workflow_agents)
-
-    llm_response, total_tokens = analysis_workflow.run(human_message.content)
-    # Calculate the token usage for the query (example: 1000 tokens for this example)
-    token_usage = total_tokens  # Modify this based on the actual token usage
-
-    customer.chat_tokens -= token_usage
-    # Deduct tokens
-    session.commit()
-    assistant_message = ChatMessage(
-        is_llm=True,
-        content=llm_response,
-        user_id=user.id,
-    )
-    session.add_all([human_message, assistant_message])
-    session.commit()
-
-    return RedirectResponse("/ingredient-chat", status_code=status.HTTP_303_SEE_OTHER)
+    limit: int = 15,
+    offset: int = 0,
+) -> list[dict[str, Any]]:
+    # assert user
+    daily_crawl_videos()
+    statement = select(Video).order_by(Video.create_date.desc()).limit(limit).offset(offset)
+    videos = session.exec(statement).all()
+    ret_val: list[dict[str, Any]] = []
+    for video in videos:
+        ret_val.append(video.to_json())
+    return ret_val
+########-------BritonVideos------#########
