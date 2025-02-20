@@ -74,7 +74,7 @@ async def _get_llm_response(request: ChatMessage) -> str:
     not_stream = client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": "Who are you"}],
-        stream=True,
+        stream=False,
     )
     print(not_stream)
     print(type(not_stream))
@@ -97,12 +97,15 @@ class Workflow:
         for agent in self.agents:
             agent.perceive(current_data)
             current_data = agent.act()
-            print(current_data)
+            if not isinstance(current_data, str):
+                llm_response = current_data[0]
+                tokens = current_data[1]
+                total_tokens += tokens
             if agent.name == "AnalyzingAgent":
                 analyzer_result = current_data
                 main_analyser_result = analyzer_result.split(" ")[0]
             elif agent.name != "InputAgent":
-                current_status += f"\n\n{current_data}"
+                current_status += f"\n\n{llm_response}"
         return current_status, total_tokens if current_status != "" else analyzer_result
 ########-------LLM model steup------#########
 
@@ -493,11 +496,9 @@ async def get_videos(
 @app.post("/ingredient-chat-test")
 async def post_chat(req: Request
 ):
-    good_workflow_agents = get_good_workflow("Pharacetamol")
+    good_workflow_agents = get_good_workflow("Paracetamol, Ibuprofen ")
     analysis_workflow = Workflow(good_workflow_agents)
-    # elif normalize_result(characteristic) == "bad":
-    #     bad_workflow_agents = get_bad_workflow(topic)
-    #     analysis_workflow = Workflow(bad_workflow_agents)
 
-    llm_response, total_tokens = analysis_workflow.run("Pharacetamol")
+
+    llm_response, total_tokens = analysis_workflow.run("Paracetamol, Ibuprofen ")
     return {"message": llm_response, "token": total_tokens}

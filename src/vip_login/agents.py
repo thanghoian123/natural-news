@@ -90,5 +90,5 @@ def create_response(stream):
         total_tokens = stream.usage.total_tokens
     else:
         response = 'No content available'
-        token = 0
+        total_tokens = 0
     return response, total_tokens

@@ -12,8 +12,14 @@ axios.defaults.withCredentials = true;
 const videos = ref([]);
 
 const getVideos = async (limit = 15, offset = 0) => {
+  const token = localStorage.getItem("token");
   const path = `/videos?limit=${limit}&offset=${offset}`;
-  const responseData = (await axios.get(path)).data;
+  const responseData = (await axios.get(path, {
+      headers: {
+        Authorization: `${token}` // Send token in Authorization header
+      }
+    })).data;
+  // const responseData = (await axios.get(path,)).data;
   for (const video of responseData) {
     videos.value.push({
       url: video.url,
