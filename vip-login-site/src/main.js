@@ -10,9 +10,9 @@ const pinia = createPinia();
 const app = createApp(App);
 app.use(router);
 
-router.beforeEach(async (to) => {
-  if (to.meta.requiresAuth && userStore.username === "") return "/login";
-});
+// router.beforeEach(async (to) => {
+//   if (to.meta.requiresAuth) return "/login";
+// });
 
 app.use(
   install, {
