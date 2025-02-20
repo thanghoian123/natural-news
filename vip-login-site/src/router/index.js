@@ -28,7 +28,7 @@ const router = createRouter({
   routes: [
     {
       path: "/",
-      // redirect: defaultRoute,
+      redirect: defaultRoute,
     },
     {
       path: "/login",
@@ -54,7 +54,6 @@ const router = createRouter({
     {
       path: "/video-report",
       name: "video-report",
-      redirect: defaultRoute,
       component: HomeView,
       meta: {
         requiresAuth: true,
