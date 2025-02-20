@@ -87,7 +87,8 @@ def create_response(stream):
     choices = stream.choices
     if choices:
         response = choices[0].message.content
+        total_tokens = stream.usage.total_tokens
     else:
         response = 'No content available'
-    total_tokens = stream.usage.total_tokens
+        token = 0
     return response, total_tokens

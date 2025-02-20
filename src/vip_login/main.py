@@ -23,7 +23,7 @@ import json
 import uuid
 from datetime import datetime
 
-# from agents import AnalyzingAgent, InputAgent
+from vip_login.agents import AnalyzingAgent, InputAgent
 from vip_login.utils import normalize_result
 from vip_login.workflows import get_good_workflow, get_bad_workflow
 from pathlib import Path
@@ -73,8 +73,8 @@ async def _get_llm_response(request: ChatMessage) -> str:
 
     not_stream = client.chat.completions.create(
         model=model,
-        messages=[{"role": "user", "content": request.content}],
-        stream=False,
+        messages=[{"role": "user", "content": "Who are you"}],
+        stream=True,
     )
     print(not_stream)
     print(type(not_stream))
@@ -93,16 +93,17 @@ class Workflow:
     def run(self, input_data):
         current_data = input_data
         current_status = f""
+        total_tokens = 0
         for agent in self.agents:
             agent.perceive(current_data)
             current_data = agent.act()
+            print(current_data)
             if agent.name == "AnalyzingAgent":
                 analyzer_result = current_data
                 main_analyser_result = analyzer_result.split(" ")[0]
             elif agent.name != "InputAgent":
                 current_status += f"\n\n{current_data}"
-
-        return current_status if current_status != "" else analyzer_result
+        return current_status, total_tokens if current_status != "" else analyzer_result
 ########-------LLM model steup------#########
 
 ########-------Database init------#########
@@ -488,3 +489,15 @@ async def get_videos(
         ret_val.append(video.to_json())
     return ret_val
 ########-------BritonVideos------#########
+
+@app.post("/ingredient-chat-test")
+async def post_chat(req: Request
+):
+    good_workflow_agents = get_good_workflow("Pharacetamol")
+    analysis_workflow = Workflow(good_workflow_agents)
+    # elif normalize_result(characteristic) == "bad":
+    #     bad_workflow_agents = get_bad_workflow(topic)
+    #     analysis_workflow = Workflow(bad_workflow_agents)
+
+    llm_response, total_tokens = analysis_workflow.run("Pharacetamol")
+    return {"message": llm_response, "token": total_tokens}

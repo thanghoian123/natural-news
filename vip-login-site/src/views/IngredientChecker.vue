@@ -88,7 +88,7 @@ const send_messages = async () => {
   const token = localStorage.getItem("token"); // Retrieve token from localStorage
 
   await axios.post(
-    "/ingredient-checker",
+    "/ingredient-chat",
     {
       value: prompt.value,
     },
