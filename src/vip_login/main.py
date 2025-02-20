@@ -399,7 +399,7 @@ async def post_chat(
     session.add_all([human_message, assistant_message])
     session.commit()
 
-    return RedirectResponse("/ingredient-chat", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse("/chat", status_code=status.HTTP_303_SEE_OTHER)
 ########-------/chat##/ingredient-checker------#########
 
 ########-------Webhook------#########
