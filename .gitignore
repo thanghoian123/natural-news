@@ -12,3 +12,4 @@ wheels/
 .vscode/
 
 *.db
+natural-news-vip-login/app/core/config.py
