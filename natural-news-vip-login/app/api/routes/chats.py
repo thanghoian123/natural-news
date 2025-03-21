@@ -7,8 +7,18 @@ from app.services.llm_service import initialize_client_and_model, token_count, W
 from app.models.chat import Message, Chat
 from typing import List
 from app.services.workflows import get_good_workflow
+import asyncio
+from fastapi import WebSocketDisconnect
+from starlette.websockets import WebSocketState
+from app.services.websocket_manager import connection_manager
 
 router = APIRouter(prefix="/chats", tags=["Chats"])
+
+async def async_stream_iterator(sync_stream):
+    """Convert a synchronous generator into an async generator."""
+    loop = asyncio.get_running_loop()
+    for chunk in sync_stream:
+        yield await loop.run_in_executor(None, lambda: chunk)
 
 @router.post("/", response_model=ChatResponse)
 def start_chat(user_id: int, session: Session = Depends(get_db)):
@@ -35,69 +45,141 @@ def get_user_chats(user_id: int, session: Session = Depends(get_db)):
     chats = get_chats_by_user_id(session, user_id)
     return chats
 
+# @router.websocket("/ws/{chat_type}/{chat_id}")
+# async def chat_websocket(websocket: WebSocket, chat_type: str, chat_id: int, session: Session = Depends(get_db)):
+#     chat = session.query(Chat).filter(Chat.id == chat_id).first()
+#     if not chat:
+#         await websocket.close(code=1008)  # Policy Violation
+#         return
+
+#     await websocket.accept()
+    
+#     try:
+#         user_message = await websocket.receive_text()
+#         user_tokens = token_count(user_message)
+
+#         # Save user message
+#         message = Message(chat_id=chat_id, role="user", content=user_message, tokens=user_tokens)
+#         session.add(message)
+#         session.commit()
+
+#         assistant_response = ""
+
+#         if chat_type == "llm":
+#             client, model = initialize_client_and_model("Qwen2.5-72B-Instruct-32K")
+#             stream = client.chat.completions.create(
+#                 model=model,
+#                 messages=[{"role": "user", "content": user_message}],
+#                 stream=True,
+#             )
+
+#             async for chunk in async_stream_iterator(stream):
+#                 if websocket.client_state != WebSocketState.CONNECTED:  
+#                     print("Client disconnected, stopping stream.")
+#                     return  # ✅ Exit function to prevent further sending
+
+#                 if len(chunk.choices) > 0 and chunk.choices[0].delta.content:
+#                     content = chunk.choices[0].delta.content
+#                     assistant_response += content
+#                     await websocket.send_text(content)
+
+#         elif chat_type == "ingredients-checker":
+#             good_workflow_agents = get_good_workflow(user_message)
+#             analysis_workflow = Workflow(good_workflow_agents)
+
+#             async for agent_response in analysis_workflow.run(user_message):
+#                 if websocket.client_state != WebSocketState.CONNECTED:  
+#                     print("Client disconnected, stopping workflow.")
+#                     return  # ✅ Exit function immediately
+
+#                 assistant_response += agent_response
+#                 await websocket.send_text(agent_response)
+
+#     except WebSocketDisconnect:
+#         print("WebSocket client disconnected early.")  
+#     except Exception as e:
+#         print(f"Unexpected error: {e}")  
+#     finally:
+#         # ✅ Only save response if connection was active
+#         if assistant_response:
+#             assistant_tokens = token_count(assistant_response)
+#             message = Message(chat_id=chat_id, role="assistant", content=assistant_response, tokens=assistant_tokens)
+#             session.add(message)
+#             session.commit()
+
+#         # ✅ Prevent multiple closing calls
+#         if websocket.client_state == WebSocketState.CONNECTED:
+#             try:
+#                 await websocket.close()
+#             except RuntimeError:
+#                 print("WebSocket was already closed.")
+
 @router.websocket("/ws/{chat_type}/{chat_id}")
 async def chat_websocket(websocket: WebSocket, chat_type: str, chat_id: int, session: Session = Depends(get_db)):
-    """
-    WebSocket endpoint for live chat interaction with the LLM.
-    The chat session must already exist.
-    """
-    # Check if chat exists. (Optionally: validate the chat's user if you have authentication)
     chat = session.query(Chat).filter(Chat.id == chat_id).first()
     if not chat:
-        await websocket.close(code=1008)  # Policy Violation or custom close code
+        await websocket.close(code=1008)  # Policy Violation
         return
-    if chat_type == "llm":
-        client, model = initialize_client_and_model("Qwen2.5-72B-Instruct-32K")
-        await websocket.accept()
 
-        # Receive user message (if your design expects only one message per connection)
-        user_message = await websocket.receive_text()
-        user_tokens = token_count(user_message)
+    await connection_manager.connect(chat_id, websocket)
+    
+    try:
+        while True:
+            user_message = await websocket.receive_text()
+            if not user_message.strip():
+                continue  # Ignore empty messages
 
-        # Save user message
-        message = Message(chat_id=chat_id, role="user", content=user_message, tokens=user_tokens)
-        session.add(message)
-        session.commit()
+            user_tokens = token_count(user_message)
+            message = Message(chat_id=chat_id, role="user", content=user_message, tokens=user_tokens)
+            session.add(message)
+            session.commit()
 
-        # Stream response from LLM
-        stream = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": user_message}],
-            stream=True,
-        )
+            assistant_response = ""
 
-        assistant_response = ""
-        for chunk in stream:
-            if len(chunk.choices) > 0 and chunk.choices[0].delta.content is not None:
-                content = chunk.choices[0].delta.content
-                assistant_response += content
-                await websocket.send_text(content)
+            if chat_type == "llm":
+                client, model = initialize_client_and_model("Qwen2.5-72B-Instruct-32K")
+                stream = client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": user_message}],
+                    stream=True,
+                )
 
-        assistant_tokens = token_count(assistant_response)
-        message = Message(chat_id=chat_id, role="assistant", content=assistant_response, tokens=assistant_tokens)
-        session.add(message)
-        session.commit()
+                async for chunk in async_stream_iterator(stream):
+                    if websocket.client_state != WebSocketState.CONNECTED:  
+                        print("Client disconnected, stopping stream.")
+                        return  
 
-        # Close the connection once the response is fully sent.
-        await websocket.close()
-    elif chat_type == "ingredients-checker":
-        await websocket.accept()
-        user_message = await websocket.receive_text()
-        user_tokens = token_count(user_message)
-        # Save user message
-        message = Message(chat_id=chat_id, role="user", content=user_message, tokens=user_tokens)
-        session.add(message)
-        session.commit()
+                    if len(chunk.choices) > 0 and chunk.choices[0].delta.content:
+                        content = chunk.choices[0].delta.content
+                        assistant_response += content
+                        if content is not None:
+                            await connection_manager.send_message(chat_id, content)
 
-        good_workflow_agents = get_good_workflow(user_message)
-        analysis_workflow = Workflow(good_workflow_agents)
-        assistant_response = ""
-        async for agent_response in analysis_workflow.run(user_message):
-            assistant_response += agent_response
-            await websocket.send_text(agent_response)  # Send each response chunk immediately
+                if websocket.client_state == WebSocketState.CONNECTED:
+                    await websocket.close(code=1000)
+                return
 
-        assistant_tokens = token_count(assistant_response)
-        message = Message(chat_id=chat_id, role="assistant", content=assistant_response, tokens=assistant_tokens)
-        session.add(message)
-        session.commit()
-        await websocket.close()
+            elif chat_type == "ingredients-checker":
+                analysis_workflow = Workflow(get_good_workflow(user_message))
+                async for agent_response in analysis_workflow.run(user_message):
+                    if chat_id not in connection_manager.active_connections:
+                        break
+                    assistant_response += agent_response
+                    if agent_response is not None:
+                        await connection_manager.send_message(chat_id, agent_response)
+
+                if websocket.client_state == WebSocketState.CONNECTED:
+                    await websocket.close(code=1000)
+                return
+
+            assistant_tokens = token_count(assistant_response)
+            message = Message(chat_id=chat_id, role="assistant", content=assistant_response, tokens=assistant_tokens)
+            session.add(message)
+            session.commit()
+
+    except WebSocketDisconnect:
+        print(f"Client {chat_id} disconnected.")
+    finally:
+        if websocket.client_state == WebSocketState.CONNECTED:
+            await connection_manager.disconnect(chat_id)
+
