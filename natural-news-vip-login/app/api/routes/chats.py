@@ -94,4 +94,4 @@ async def chat_websocket(websocket: WebSocket, chat_type: str, chat_id: int, ses
         async for agent_response in analysis_workflow.run(user_message):
             await websocket.send_text(agent_response)  # Send each response chunk immediately
 
-    await websocket.close()
+        await websocket.close()
