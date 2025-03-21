@@ -91,7 +91,13 @@ async def chat_websocket(websocket: WebSocket, chat_type: str, chat_id: int, ses
 
         good_workflow_agents = get_good_workflow(user_message)
         analysis_workflow = Workflow(good_workflow_agents)
+        assistant_response = ""
         async for agent_response in analysis_workflow.run(user_message):
+            assistant_response += agent_response
             await websocket.send_text(agent_response)  # Send each response chunk immediately
 
+        assistant_tokens = token_count(assistant_response)
+        message = Message(chat_id=chat_id, role="assistant", content=assistant_response, tokens=assistant_tokens)
+        session.add(message)
+        session.commit()
         await websocket.close()
