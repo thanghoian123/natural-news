@@ -1,6 +1,7 @@
 from openai import OpenAI
 import tiktoken
 from app.core.config import API_KEY
+from typing import Annotated, AsyncGenerator, List, Tuple
 
 def initialize_client_and_model(llm_selection):
     """Initialize the client and model based on the selected LLM engine."""
@@ -24,3 +25,22 @@ def token_count(content) -> int:
     token_integers = encoding.encode(content)
     num_tokens = len(token_integers)
     return num_tokens
+
+class Workflow:
+    def __init__(self, agents):
+        self.agents = agents
+
+    async def run(self, input_data) -> AsyncGenerator[dict, None]:
+        """Yields agent name, response, and keeps track of total tokens"""
+        current_data = input_data
+        total_tokens = 0
+
+        # for agent in self.agents:
+        #     async for llm_response in agent.act():  # ✅ Iterate properly
+        #         yield llm_response  # Stream each chunk
+
+        for agent in self.agents:
+            agent.perceive(input_data)
+
+            async for response in agent.act():  # ✅ Iterate over streamed chunks
+                yield response  # ✅ Stream chunks asynchronously
