@@ -23,3 +23,12 @@ def get_chats_by_user_id(db: Session, user_id: int):
     Retrieve all chats for a given user.
     """
     return db.query(Chat).filter(Chat.user_id == user_id).all()
+
+def delete_chat_by_id(db: Session, chat_id: int) -> bool:
+    chat = db.query(Chat).filter(Chat.id == chat_id).first()
+    if not chat:
+        return False
+    
+    db.delete(chat)
+    db.commit()
+    return True
