@@ -1,24 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, WebSocket
-from sqlmodel import Session
 from app.database import get_db
 from app.schemas.chat import ChatResponse, MessageResponse
 from app.services.chat_service import create_chat, get_chat_history_by_id, get_chats_by_user_id,delete_chat_by_id
-from app.services.llm_service import initialize_client_and_model, token_count, Workflow
-from app.models.chat import Message, Chat
-from typing import List
-from app.services.workflows import get_good_workflow
-import asyncio
-from fastapi import WebSocketDisconnect
-from starlette.websockets import WebSocketState
+from app.models.chat import Message
 from app.services.websocket_manager import connection_manager
+from app.services.llm_service import (
+    get_message_history,
+    handle_llm_chat,
+    handle_ingredients_checker,
+    validate_chat_and_user,
+)
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from sqlmodel import Session
+from typing import List, Optional
 
 router = APIRouter(prefix="/chats", tags=["Chats"])
 
-async def async_stream_iterator(sync_stream):
-    """Convert a synchronous generator into an async generator."""
-    loop = asyncio.get_running_loop()
-    for chunk in sync_stream:
-        yield await loop.run_in_executor(None, lambda: chunk)
 
 @router.post("/", response_model=ChatResponse)
 def start_chat(user_id: int, session: Session = Depends(get_db)):
@@ -49,72 +45,63 @@ def get_user_chats(user_id: int, session: Session = Depends(get_db)):
     chats = get_chats_by_user_id(session, user_id)
     return chats
 
+
+@router.websocket("/ws/{chat_type}/{chat_id}/{regenerate}")
 @router.websocket("/ws/{chat_type}/{chat_id}")
-async def chat_websocket(websocket: WebSocket, chat_type: str, chat_id: int, session: Session = Depends(get_db)):
-    chat = session.query(Chat).filter(Chat.id == chat_id).first()
-    if not chat:
-        await websocket.close(code=1008)  # Policy Violation
+async def chat_websocket(
+    websocket: WebSocket,
+    chat_type: str,
+    chat_id: int,
+    session: Session = Depends(get_db),
+    regenerate: Optional[str] = None,
+):
+    await connection_manager.connect(chat_id, websocket)
+
+    validated = await validate_chat_and_user(websocket, session, chat_id)
+    if validated is None:
         return
 
-    await connection_manager.connect(chat_id, websocket)
-    
+    user = validated["user"]
+
     try:
         while True:
             user_message = await websocket.receive_text()
+
+            # Use previous message for regeneration if requested
+            if regenerate == "regenerate":
+                last_message = (
+                    session.query(Message)
+                    .filter(Message.chat_id == chat_id, Message.role == "user")
+                    .order_by(Message.created_at.desc())
+                    .first()
+                )
+                if not last_message:
+                    await websocket.send_text("❌ No previous message to regenerate.")
+                    await websocket.close(code=1008)
+                    return
+                user_message = last_message.content
+
             if not user_message.strip():
                 continue  # Ignore empty messages
 
-            user_tokens = token_count(user_message)
-            message = Message(chat_id=chat_id, role="user", content=user_message, tokens=user_tokens)
-            session.add(message)
-            session.commit()
-
-            assistant_response = ""
+            # Retrieve message history (last 5 messages)
+            message_history = await get_message_history(session, chat_id)
 
             if chat_type == "llm":
-                client, model = initialize_client_and_model("Qwen2.5-72B-Instruct-32K")
-                stream = client.chat.completions.create(
-                    model=model,
-                    messages=[{"role": "user", "content": user_message}],
-                    stream=True,
-                )
-
-                async for chunk in async_stream_iterator(stream):
-                    if websocket.client_state != WebSocketState.CONNECTED:  
-                        print("Client disconnected, stopping stream.")
-                        return  
-
-                    if len(chunk.choices) > 0 and chunk.choices[0].delta.content:
-                        content = chunk.choices[0].delta.content
-                        assistant_response += content
-                        if content is not None:
-                            await connection_manager.send_message(chat_id, content)
-
-                if websocket.client_state == WebSocketState.CONNECTED:
-                    await websocket.close(code=1000)
+                await handle_llm_chat(websocket, session, chat_id, user, message_history, user_message)
                 return
 
             elif chat_type == "ingredients-checker":
-                analysis_workflow = Workflow(get_good_workflow(user_message))
-                async for agent_response in analysis_workflow.run(user_message):
-                    if chat_id not in connection_manager.active_connections:
-                        break
-                    assistant_response += agent_response
-                    if agent_response is not None:
-                        await connection_manager.send_message(chat_id, agent_response)
-
-                if websocket.client_state == WebSocketState.CONNECTED:
-                    await websocket.close(code=1000)
+                await handle_ingredients_checker(websocket, session, chat_id, user_message)
                 return
 
-            assistant_tokens = token_count(assistant_response)
-            message = Message(chat_id=chat_id, role="assistant", content=assistant_response, tokens=assistant_tokens)
-            session.add(message)
-            session.commit()
+            else:
+                await websocket.send_text("❌ Unknown chat type.")
+                await websocket.close(code=1008)
+                return
 
     except WebSocketDisconnect:
         print(f"Client {chat_id} disconnected.")
     finally:
-        if websocket.client_state == WebSocketState.CONNECTED:
-            await connection_manager.disconnect(chat_id)
+        await connection_manager.disconnect(chat_id)
 

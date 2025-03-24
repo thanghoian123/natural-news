@@ -13,3 +13,4 @@ class User(Base):
     type_platform = Column(SQLAlchemyEnum(PlatformEnum), nullable=False)
     tier = Column(SQLAlchemyEnum(TierEnum), nullable=False, default=TierEnum.BRONZE)  # ✅ Default value # ✅ Default value
     chats = relationship("Chat", back_populates="user")
+    reward = Column(Integer, nullable=False, default=5)

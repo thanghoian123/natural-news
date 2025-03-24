@@ -26,6 +26,11 @@ class UserResponse(BaseModel):
     email: str
     type_platform: PlatformEnum
     tier: TierEnum
+    reward: int
 
     class Config:
         from_attributes = True  # Allows ORM mode
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str
