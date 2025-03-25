@@ -9,7 +9,7 @@ class Chat(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    title: str = Column(String, nullable=False)
+    title: str = Column(String, nullable=True)
     user = relationship("User", back_populates="chats")
     messages = relationship("Message", back_populates="chat", cascade="all, delete-orphan")  # Add this
     
