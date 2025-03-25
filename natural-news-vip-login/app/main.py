@@ -3,8 +3,10 @@ from app.database import engine, Base
 from  app.api.routes.users import router as user_router
 from app.api.routes.chats import router as chat_router
 from fastapi.middleware.cors import CORSMiddleware
+from app.middlewares.token_middleware import TokenExpiryMiddleware
 from app.daily_tasks import scheduler
 app = FastAPI()
+app.add_middleware(TokenExpiryMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

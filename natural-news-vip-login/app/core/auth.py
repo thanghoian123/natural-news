@@ -1,11 +1,11 @@
 import jwt
 import datetime
-from fastapi import HTTPException, Security, Depends
+from fastapi import HTTPException, Security, Depends,Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.core.config import SECRET_KEY,ALGORITHM
 
 # Secret key for signing tokens
-SECRET_KEY = "your_secret_key"
-ALGORITHM = "HS256"
+
 TOKEN_EXPIRY_MINUTES = 60  # Token expiry time
 
 # Security scheme for authorization
@@ -26,14 +26,16 @@ def create_token(user_id: int, email: str):
     return token
 
 
-def verify_token(credentials: HTTPAuthorizationCredentials = Security(security)):
-    """Middleware to verify token validity."""
-    token = credentials.credentials
-    
+
+def verify_token(request: Request):
+    token = request.headers.get("Authorization")
+    if not token:
+        raise HTTPException(status_code=401, detail="Token missing")
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload  # Returns user info if valid
+        payload = jwt.decode(token.replace("Bearer ", ""), SECRET_KEY, algorithms=[ALGORITHM])
+        return payload  # Return decoded user information
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
+    except jwt.JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
