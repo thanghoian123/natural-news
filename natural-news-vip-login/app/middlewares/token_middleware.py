@@ -6,7 +6,7 @@ from jose import jwt, JWTError
 from app.core.config import SECRET_KEY, ALGORITHM
 
 # List of public (no-auth) routes (without query parameters)
-PUBLIC_PATHS = {"/users/login"}
+PUBLIC_PATHS = {"/users/login", "/docs", "/openapi.json"}
 
 class TokenExpiryMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):

@@ -14,7 +14,9 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 
 @router.get("", response_model=List[UserResponse])
+# def get_users(db: Session = Depends(get_db), payload: dict = Depends(verify_token)):
 def get_users(db: Session = Depends(get_db), payload: dict = Depends(verify_token)):
+
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=400, detail="User ID not found in token")
@@ -25,11 +27,13 @@ def get_users(db: Session = Depends(get_db), payload: dict = Depends(verify_toke
     return users
 
 @router.get("/{user_id}", response_model=UserResponse)
-def get_user_api(user_id: int, db: Session = Depends(get_db)):
+# def get_user_api(user_id: int, db: Session = Depends(get_db)):
+def get_user_api(user_id: int, db: Session = Depends(get_db), payload: dict = Depends(verify_token)):
     return get_user(db, user_id)
 
 @router.post("", response_model=UserResponse)
-def create_user_api(user: UserCreate, db: Session = Depends(get_db)):
+# def create_user_api(user: UserCreate, db: Session = Depends(get_db)):
+def create_user_api(user: UserCreate, db: Session = Depends(get_db), payload: dict = Depends(verify_token)):
     return create_user(db, user)
 
 # @router.post("/login", response_model=UserResponse)

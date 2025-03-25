@@ -27,15 +27,27 @@ def create_token(user_id: int, email: str):
 
 
 
-def verify_token(request: Request):
-    token = request.headers.get("Authorization")
-    if not token:
-        raise HTTPException(status_code=401, detail="Token missing")
+# def verify_token(request: Request):
+#     token = request.headers.get("Authorization")
+#     if not token:
+#         raise HTTPException(status_code=401, detail="Token missing")
 
+#     try:
+#         payload = jwt.decode(token.replace("Bearer ", ""), SECRET_KEY, algorithms=[ALGORITHM])
+#         return payload  # Return decoded user information
+#     except jwt.ExpiredSignatureError:
+#         raise HTTPException(status_code=401, detail="Token expired")
+#     except jwt.JWTError:
+#         raise HTTPException(status_code=401, detail="Invalid token")
+    
+def verify_token(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """Middleware to verify token validity."""
+    token = credentials.credentials
+    
     try:
-        payload = jwt.decode(token.replace("Bearer ", ""), SECRET_KEY, algorithms=[ALGORITHM])
-        return payload  # Return decoded user information
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload  # Returns user info if valid
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.JWTError:
+    except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")

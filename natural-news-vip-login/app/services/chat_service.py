@@ -1,15 +1,20 @@
 from sqlalchemy.orm import Session
 from app.models.chat import Chat
 from datetime import datetime
-
+from app.services.llm_service import update_chat_title
 def create_chat(db: Session, user_id: int) -> Chat:
     """
-    Create a new chat for the given user.
+    Create a new chat for the given user and assign a title based on the first user message.
     """
     chat = Chat(user_id=user_id)
     db.add(chat)
     db.commit()
     db.refresh(chat)
+
+    # Generate and set title
+    chat.title = update_chat_title(db, chat.id)  # Auto-generate title
+    db.commit()  # Save the title
+
     return chat
 
 def get_chat_history_by_id(db: Session, chat_id: int) -> Chat:

@@ -12,19 +12,21 @@ from app.services.llm_service import (
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from sqlmodel import Session
 from typing import List, Optional
-
+from app.core.auth import verify_token
 router = APIRouter(prefix="/chats", tags=["Chats"])
 
 
 @router.post("/", response_model=ChatResponse)
-def start_chat(user_id: int, session: Session = Depends(get_db)):
+# def start_chat(user_id: int, session: Session = Depends(get_db):
+def start_chat(user_id: int, session: Session = Depends(get_db), payload: dict = Depends(verify_token)):
     """
     Create a new chat session for the given user.
     """
     return create_chat(session, user_id)
 
 @router.get("/{chat_id}/messages", response_model=List[MessageResponse])
-def get_chat_messages(chat_id: int, session: Session = Depends(get_db)):
+# def get_chat_messages(chat_id: int, session: Session = Depends(get_db)):
+def get_chat_messages(chat_id: int, session: Session = Depends(get_db), payload: dict = Depends(verify_token)):
     """
     Retrieve chat history (messages) for a specific chat ID.
     """
@@ -34,30 +36,40 @@ def get_chat_messages(chat_id: int, session: Session = Depends(get_db)):
     return chat.messages
 
 @router.delete("/{chat_id}", response_model=dict)
-def delete_chat(chat_id: int, session: Session = Depends(get_db)):
+# def delete_chat(chat_id: int, session: Session = Depends(get_db)):
+def delete_chat(chat_id: int, session: Session = Depends(get_db), payload: dict = Depends(verify_token)):
     deleted = delete_chat_by_id(session, chat_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Chat not found")
     return {"message": "Chat deleted successfully"}
 
 @router.get("/user/{user_id}", response_model=List[ChatResponse])
-def get_user_chats(user_id: int, session: Session = Depends(get_db)):
+# def get_user_chats(user_id: int, session: Session = Depends(get_db)):
+def get_user_chats(user_id: int, session: Session = Depends(get_db), payload: dict = Depends(verify_token)):
     chats = get_chats_by_user_id(session, user_id)
     return chats
 
 
-@router.websocket("/ws/{chat_type}/{chat_id}/{regenerate}")
-@router.websocket("/ws/{chat_type}/{chat_id}")
+@router.websocket("/ws/{chat_type}/{user_id}/{chat_id}/{regenerate}")
+@router.websocket("/ws/{chat_type}/{user_id}/{chat_id}")
+# async def chat_websocket(
+#     websocket: WebSocket,
+#     chat_type: str,
+#     chat_id: int,
+#     session: Session = Depends(get_db),
+#     regenerate: Optional[str] = None,
+# ):
 async def chat_websocket(
     websocket: WebSocket,
     chat_type: str,
     chat_id: int,
+    user_id: int,
     session: Session = Depends(get_db),
     regenerate: Optional[str] = None,
+    # payload: dict = Depends(verify_token)
 ):
     await connection_manager.connect(chat_id, websocket)
-
-    validated = await validate_chat_and_user(websocket, session, chat_id)
+    validated = await validate_chat_and_user(websocket, session, chat_id, user_id)
     if validated is None:
         return
 
@@ -88,7 +100,9 @@ async def chat_websocket(
             message_history = await get_message_history(session, chat_id)
 
             if chat_type == "llm":
-                await handle_llm_chat(websocket, session, chat_id, user, message_history, user_message)
+                await handle_llm_chat(
+                    websocket, session, chat_id, user, message_history, user_message, regenerate=(regenerate == "regenerate")
+                )
                 return
 
             elif chat_type == "ingredients-checker":

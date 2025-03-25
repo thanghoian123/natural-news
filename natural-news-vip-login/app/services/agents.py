@@ -83,6 +83,5 @@ def create_response(stream):
     for chunk in stream:
         if chunk.choices and chunk.choices[0].delta.content:
             content = chunk.choices[0].delta.content
-            print(content)  # Debugging: Print each chunk
             yield content  # ✅ Use synchronous generator to yield content
 
