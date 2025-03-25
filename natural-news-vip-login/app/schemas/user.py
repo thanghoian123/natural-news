@@ -7,6 +7,7 @@ from typing import Optional
 class PlatformEnum(str, Enum):
     SHOPIFY = "Shopify"
     HRS = "HRS"
+    SHOPIFY_HRS = "SHOPIFY_HRS"
 
 class TierEnum(str, Enum):
     BRONZE = "Bronze"
