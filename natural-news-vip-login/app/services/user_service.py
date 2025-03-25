@@ -38,10 +38,10 @@ def get_users(db: Session):
 def login_user(db: Session, email: str):
     """Login API: Check email in ActiveCampaign/Shopify and update DB if found."""
     
-    # platform, tier, new_reward = determine_user_tier_and_reward(email)
+    platform, tier, new_reward = determine_user_tier_and_reward(email)
 
-    platform = "SHOPIFY"
-    tier = "SILVER"
+    # platform = "SHOPIFY"
+    # tier = "SILVER"
     new_reward = get_tier_reward(tier)
     # Check if user already exists in DB
     user = db.query(User).filter(User.email == email).first()

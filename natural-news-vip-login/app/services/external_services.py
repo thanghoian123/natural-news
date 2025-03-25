@@ -61,31 +61,24 @@ HEADERS_ACTIVE_CAMPAIGN = {
 
 def check_active_campaign(email: str):
     """Check if email exists in ActiveCampaign"""
-    
-    url = f"{ACTIVE_CAMPAIGN_URL}/api/3/contacts?email={email}"
+
+    url = f"{ACTIVE_CAMPAIGN_URL}/api/3/users"
     
     response = requests.get(url, headers=HEADERS_ACTIVE_CAMPAIGN)
 
     if response.status_code == 200:
         data = response.json()
-        if data.get("contacts"):
-            data["contacts"][0]["platform"] = PlatformEnum.HRS
-            return data["contacts"][0]  # Return user data
-    return None  # Not found
+        users = data.get("users", [])
 
-def get_ecommerce_customer_id(contact_id: str):
-    
-    url = f'{ACTIVE_CAMPAIGN_URL}/ecomCustomers?filters[contactId]={contact_id}'
-    response = requests.get(url, headers=HEADERS_ACTIVE_CAMPAIGN)
-    if response.status_code == 200:
-        data = response.json()
-        if data['ecomCustomers']:
-            return data['ecomCustomers'][0]['id']
-    return None
+        for user in users:
+            if user.get("email") == email:
+                return user  # Return the user details if found
 
-def get_all_orders_by_customer_id(ecom_customer_id: str):
+    return None  # Return None if email not found
+
+def get_all_orders_by_customer_email(customer_email: str):
     orders = []
-    url = f'{ACTIVE_CAMPAIGN_URL}/ecomOrders?filters[customerId]={ecom_customer_id}'
+    url = f'{ACTIVE_CAMPAIGN_URL}/api/3/ecomOrders?filters[email]={customer_email}'
     response = requests.get(url, headers=HEADERS_ACTIVE_CAMPAIGN)
     if response.status_code == 200:
         data = response.json()
@@ -101,17 +94,12 @@ def calculate_total_spent(orders):
             total_spent += float(order['totalPrice'])
     return total_spent
 
-def get_total_spent_last_three_months_active_campaign(contact_id):
+def get_total_spent_last_three_months_active_campaign(email):
     """
     Calculate the total amount spent by the customer in the last three months.
     """
-    # Retrieve E-commerce Customer ID
-    ecom_customer_id = get_ecommerce_customer_id(contact_id)
-    if not ecom_customer_id:
-        print(f'No E-commerce customer found for contact ID: {contact_id}')
-        return 0
 
-    orders = get_all_orders_by_customer_id(ecom_customer_id)
+    orders = get_all_orders_by_customer_email(email)
     total_spent = calculate_total_spent(orders)
     return total_spent
 
@@ -131,12 +119,9 @@ def determine_user_tier_and_reward(email):
         total_spent_shopify = 0.0
     
     if user_data_active_campaign:
-        platform = user_data_active_campaign["contacts"][0].get("platform", "ACTIVE_CAMPAIGN")
-        total_spent_active_campaign = float(get_total_spent_last_three_months_active_campaign(user_data_active_campaign['id']))
-    else:
-        total_spent_active_campaign = 0.0
+        platform = "HRS"
     
-    total_spent = total_spent_shopify + total_spent_active_campaign
+    total_spent = total_spent_shopify
     tier = get_user_tier(total_spent)
     new_reward = get_tier_reward(tier)
     
