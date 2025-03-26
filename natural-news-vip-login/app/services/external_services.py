@@ -62,17 +62,12 @@ HEADERS_ACTIVE_CAMPAIGN = {
 def check_active_campaign(email: str):
     """Check if email exists in ActiveCampaign"""
 
-    url = f"{ACTIVE_CAMPAIGN_URL}/api/3/users"
-    
+    url = f"{ACTIVE_CAMPAIGN_URL}/api/3/users/email/{email}"
     response = requests.get(url, headers=HEADERS_ACTIVE_CAMPAIGN)
-
     if response.status_code == 200:
         data = response.json()
-        users = data.get("users", [])
-
-        for user in users:
-            if user.get("email") == email:
-                return user  # Return the user details if found
+        user = data.get("user", {})
+        return user  # Return the user details if found
 
     return None  # Return None if email not found
 
