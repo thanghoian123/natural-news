@@ -4,7 +4,8 @@ from  app.api.routes.users import router as user_router
 from app.api.routes.chats import router as chat_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.middlewares.token_middleware import TokenExpiryMiddleware
-from app.daily_tasks import scheduler
+from app.daily_tasks import scheduler, reset_rewards
+
 app = FastAPI()
 app.add_middleware(TokenExpiryMiddleware)
 
@@ -25,6 +26,7 @@ app.include_router(chat_router)
 
 @app.on_event("startup")
 async def startup_event():
+    reset_rewards()
     print("🚀 FastAPI started, APScheduler is running.")
 
 @app.on_event("shutdown")
