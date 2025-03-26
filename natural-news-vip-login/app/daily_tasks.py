@@ -1,26 +1,46 @@
-from apscheduler.schedulers.background import BackgroundScheduler
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
+from apscheduler.schedulers.background import BackgroundScheduler
+
 from app.database import SessionLocal
 from app.models.user import User
+from app.models.rewardresetlog import RewardResetLog  # Import the new model
 from app.schemas.user import TierEnum
 
-# Define rewards per tier
 TIER_REWARD_MAP = {
     TierEnum.BRONZE: 5,
     TierEnum.SILVER: 10,
     TierEnum.GOLD: 50,
-    TierEnum.PLATINUM: float('inf'),  # Unlimited
+    TierEnum.PLATINUM: 99999,
 }
 
+RESET_INTERVAL_HOURS = 24  # Ensure rewards reset every 24 hours
+
 def reset_rewards():
-    """Reset user rewards based on their tier."""
+    """Reset user rewards based on their tier, ensuring no duplicate resets."""
     db: Session = SessionLocal()
     try:
+        # Get last reset time
+        last_reset_entry = db.query(RewardResetLog).order_by(RewardResetLog.last_reset.desc()).first()
+        last_reset_time = last_reset_entry.last_reset if last_reset_entry else None
+
+        now = datetime.utcnow()
+        if last_reset_time and (now - last_reset_time) < timedelta(hours=RESET_INTERVAL_HOURS):
+            print("⏳ Rewards already reset recently. Skipping...")
+            return  # Skip reset if within 24 hours
+        
+        # Reset user rewards
         users = db.query(User).all()
         for user in users:
-            user.reward = TIER_REWARD_MAP.get(user.tier, 5)  # Default to 5 if tier missing
+            user.reward = TIER_REWARD_MAP.get(user.tier, 5)
         db.commit()
+
+        # Update last reset time
+        db.add(RewardResetLog(last_reset=now))
+        db.commit()
+
         print("✅ User rewards reset successfully!")
+
     except Exception as e:
         print(f"❌ Error resetting rewards: {e}")
     finally:
@@ -28,5 +48,5 @@ def reset_rewards():
 
 # Schedule the task every 24 hours
 scheduler = BackgroundScheduler()
-scheduler.add_job(reset_rewards, "interval", hours=24)
+scheduler.add_job(reset_rewards, "interval", hours=24)  # Change to hours=24
 scheduler.start()
