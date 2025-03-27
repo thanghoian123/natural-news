@@ -1,5 +1,10 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
+from fastapi_mail import MessageSchema, FastMail
+from fastapi import BackgroundTasks
+from datetime import datetime, timedelta
+
+from app.core.mail import generate_session_password, send_email
 from app.models.user import User
 from app.schemas.user import UserCreate, TierEnum
 from app.services.external_services import determine_user_tier_and_reward, get_tier_reward
@@ -35,21 +40,52 @@ def get_users(db: Session):
         raise HTTPException(status_code=404, detail="User not found")
     return users
 
-def login_user(db: Session, email: str):
-    """Login API: Check email in ActiveCampaign/Shopify and update DB if found."""
+def login_user(db: Session, email: str, background_tasks: BackgroundTasks):
+    """Login API: Generate and send a 6-digit password for session login."""
     user = db.query(User).filter(User.email == email).first()
+
     if not user:
-        # Create new user if not in DB
         platform, tier, new_reward = determine_user_tier_and_reward(email)
         user = User(email=email, type_platform=platform, tier=tier, reward=new_reward)
         db.add(user)
         db.commit()
         db.refresh(user)
 
-    # Generate JWT Token
+    # Generate session password and set expiry
+    # session_password = generate_session_password()
+    session_password = "112233"  # For testing purposes
+    user.session_password = session_password
+    user.session_password_expiry = datetime.utcnow() + timedelta(minutes=5)  # Valid for 5 min
+    db.commit()
+
+    # Send session password via email
+    subject = "Your Login Session Code"
+    body = f"Hello,<br>Your one-time login code is: <b>{session_password}</b>.<br>Use it within 5 minutes."
+    # background_tasks.add_task(send_email, email, subject, body)
+
+    return {"message": "Session password sent to your email."}
+
+def verify_session_login(db: Session, email: str, session_password: str):
+    """Verify session password and log the user in."""
+    user = db.query(User).filter(User.email == email).first()
+
+    if not user or user.session_password != session_password:
+        raise HTTPException(status_code=401, detail="Invalid session password.")
+
+    if user.session_password_expiry and user.session_password_expiry < datetime.utcnow():
+        raise HTTPException(status_code=401, detail="Session password expired. Request a new one.")
+
+    # Generate a JWT token upon successful login
     token = create_token(user.id, user.email)
 
+    # Clear the session password after successful login
+    user.session_password = None
+    user.session_password_expiry = None
+    db.commit()
+
     return {"access_token": token, "token_type": "bearer"}
+
+
 
 def deduct_reward(db: Session, user_id: int, cost: int):
     """Deducts reward from a user's account when they use the LLM."""

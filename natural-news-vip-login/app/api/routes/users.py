@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException,Query,Request
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.database import get_db
 from typing import List
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, LoginResponse
-from app.services.user_service import create_user,get_user,login_user
+from app.services.user_service import create_user, get_user, login_user, verify_session_login
 from app.core.auth import verify_token
 from fastapi.responses import JSONResponse
 
@@ -41,6 +41,23 @@ def create_user_api(user: UserCreate, db: Session = Depends(get_db), payload: di
 #     return login_user(db, email)
 
 
-@router.post("/login", response_model=LoginResponse)
-def login_api(email: str = Query(...), db: Session = Depends(get_db)):
-    return login_user(db, email)
+# @router.post("/login", response_model=LoginResponse)
+# def login_api(email: str = Query(...), db: Session = Depends(get_db)):
+#     return login_user(db, email)
+
+@router.post("/login")
+def login_api(
+    background_tasks: BackgroundTasks,  # ✅ Move this first
+    email: str = Query(...), 
+    db: Session = Depends(get_db)  
+):
+    return login_user(db, email, background_tasks)
+
+@router.post("/verify-login", response_model=LoginResponse)
+def verify_login_api(
+    email: str = Query(...), 
+    session_password: str = Query(...), 
+    db: Session = Depends(get_db)
+):
+    """Step 2: Verify session password and return a JWT token if valid."""
+    return verify_session_login(db, email, session_password)
