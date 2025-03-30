@@ -1,7 +1,10 @@
 import requests
 from fastapi import HTTPException
 from app.schemas.user import PlatformEnum, TierEnum  # Import Enums only
-import datetime
+from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
+from app.models.user import User
+
 
 # from app.services.user_service import calculate_total_spent
 from app.core.config import ACTIVE_CAMPAIGN_API_KEY, ACTIVE_CAMPAIGN_URL, SHOPIFY_STORE_URL, SHOPIFY_API_KEY
@@ -32,7 +35,7 @@ def check_shopify(email: str):
 
 def get_shopify_orders(email: str):
     """Fetch orders by email within the last 3 months from Shopify and calculate total amount"""
-    three_months_ago = (datetime.datetime.utcnow() - datetime.timedelta(days=90)).strftime("%Y-%m-%dT%H:%M:%S%z")
+    three_months_ago = (datetime.utcnow() - timedelta(days=90)).strftime("%Y-%m-%dT%H:%M:%S%z")
     
     url = f"{SHOPIFY_STORE_URL}/admin/api/2025-01/orders.json?status=any&email={email}&created_at_min={three_months_ago}"
 
@@ -41,7 +44,6 @@ def get_shopify_orders(email: str):
     if response.status_code == 200:
         data = response.json()
         orders = data.get("orders", [])
-
         # Sum up current_total_price from all orders
         total_amount = round(sum(float(str(order.get("current_total_price", "0"))) for order in orders), 2)
 
@@ -52,6 +54,43 @@ def get_shopify_orders(email: str):
 
     return {"total_amount": 0, "orders": []}  # Return empty if no orders found
 
+
+def get_customer_total_spent(customer_id: int):
+    """Fetch customer's total spending in the last 3 months."""
+    url = f"{SHOPIFY_STORE_URL}/admin/api/2025-01/orders.json"
+
+    params = {
+        "status": "any",
+        "financial_status": "paid",
+        "customer_id": customer_id,
+        "created_at_min": (datetime.utcnow() - timedelta(days=90)).isoformat() + "Z"
+    }
+
+    response = requests.get(url, headers=HEADERS_SHOPIFY, params=params)
+
+    if response.status_code != 200:
+        return None
+
+    orders = response.json().get("orders", [])
+    total_spent = sum(float(order["total_price"]) for order in orders)
+    return total_spent
+
+def update_tier_customer(email: str, total_spent: float, db: Session):
+    tier = get_user_tier(total_spent)
+    new_reward = get_tier_reward(tier)
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        # Create new user if not found
+        user = User(email=email, tier=tier, reward=new_reward)
+        db.add(user)
+    else:
+        # Update existing user
+        user.tier = tier
+        user.reward = new_reward
+
+    db.commit()
+    db.refresh(user)
+    return user
 
 #####################################################ACTIVE-CAMPAIGN#########################################################
 HEADERS_ACTIVE_CAMPAIGN = {
@@ -126,14 +165,6 @@ def determine_user_tier_and_reward(email):
     return platform, tier, new_reward
 
 def get_user_tier(total_spent: float) -> str:
-    """
-    Determine the user's tier based on total spent.
-    
-    - BRONZE: Default tier if total_spent < 100
-    - SILVER: If total_spent is between 100 and 499
-    - GOLD: If total_spent is between 500 and 999
-    - PLATINUM: If total_spent >= 1000
-    """
     if total_spent >= 2499:
         return "PLATINUM"
     elif total_spent >= 999:
