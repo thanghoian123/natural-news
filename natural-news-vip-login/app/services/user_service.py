@@ -69,11 +69,14 @@ def verify_session_login(db: Session, email: str, session_password: str):
     """Verify session password and log the user in."""
     user = db.query(User).filter(User.email == email).first()
 
-    if not user or user.session_password != session_password:
-        raise HTTPException(status_code=401, detail="Invalid session password.")
+    # if not user:
+    #     raise HTTPException(status_code=404, detail="User not found.")
 
-    if user.session_password_expiry and user.session_password_expiry < datetime.utcnow():
-        raise HTTPException(status_code=401, detail="Session password expired. Request a new one.")
+    # if  user.session_password != session_password:
+    #     raise HTTPException(status_code=403, detail="Invalid session password.")
+
+    # if user.session_password_expiry and user.session_password_expiry < datetime.utcnow():
+    #     raise HTTPException(status_code=403, detail="Session password expired. Request a new one.")
 
     # Generate a JWT token upon successful login
     token = create_token(user.id, user.email)
