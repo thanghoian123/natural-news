@@ -54,27 +54,39 @@ def get_shopify_orders(email: str):
 
     return {"total_amount": 0, "orders": []}  # Return empty if no orders found
 
-
 def get_customer_total_spent(customer_id: int):
-    """Fetch customer's total spending in the last 3 months."""
-    url = f"{SHOPIFY_STORE_URL}/admin/api/2025-01/orders.json"
-
+    orders_url = f"{SHOPIFY_STORE_URL}/admin/api/2025-01/orders.json"
+    created_at_min = (datetime.utcnow() - timedelta(days=90)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    
     params = {
-        "status": "any",
+        "status": "any",  # Includes fulfilled and closed orders
         "financial_status": "paid",
-        "customer_id": customer_id,
-        "created_at_min": (datetime.utcnow() - timedelta(days=90)).isoformat() + "Z"
+        "customer_id": 7550923145393,
+        "created_at_min": created_at_min,
+        "limit": 250  # Max Shopify API allows per request
     }
 
-    response = requests.get(url, headers=HEADERS_SHOPIFY, params=params)
+    response = requests.get(orders_url, headers=HEADERS_SHOPIFY, params=params)
 
     if response.status_code != 200:
         return None
-
     orders = response.json().get("orders", [])
     total_spent = sum(float(order["total_price"]) for order in orders)
     return total_spent
 
+def get_customer_by_email(email: str):
+    customer_url = f"{SHOPIFY_STORE_URL}/admin/api/2025-01/customers/search.json"
+    customer_params = {"query": f"email:{email}"}
+    customer_response = requests.get(customer_url, headers=HEADERS_SHOPIFY, params=customer_params)
+
+    if customer_response.status_code != 200:
+        return None  # Handle failure case
+
+    customers = customer_response.json().get("customers", [])
+    if not customers:
+        return 0  # No customer found → spent = 0
+
+    return customers
 def update_tier_customer(email: str, total_spent: float, db: Session):
     tier = get_user_tier(total_spent)
     new_reward = get_tier_reward(tier)

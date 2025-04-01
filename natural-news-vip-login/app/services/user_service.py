@@ -42,14 +42,16 @@ def get_users(db: Session):
 
 def login_user(db: Session, email: str, background_tasks: BackgroundTasks):
     """Login API: Generate and send a 6-digit password for session login."""
+    platform, tier, new_reward = determine_user_tier_and_reward(email)
     user = db.query(User).filter(User.email == email).first()
 
     if not user:
-        platform, tier, new_reward = determine_user_tier_and_reward(email)
         user = User(email=email, type_platform=platform, tier=tier, reward=new_reward)
         db.add(user)
-        db.commit()
-        db.refresh(user)
+    else:
+        user.type_platform = platform
+        user.tier = tier
+        user.reward = new_reward
 
     # Generate session password and set expiry
     # session_password = generate_session_password()
@@ -57,6 +59,7 @@ def login_user(db: Session, email: str, background_tasks: BackgroundTasks):
     user.session_password = session_password
     user.session_password_expiry = datetime.utcnow() + timedelta(minutes=5)  # Valid for 5 min
     db.commit()
+    db.refresh(user)
 
     # Send session password via email
     subject = "Your Login Session Code For Natural News VIP"
