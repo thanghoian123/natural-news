@@ -62,8 +62,8 @@ def login_user(db: Session, email: str, background_tasks: BackgroundTasks):
     db.refresh(user)
 
     # Send session password via email
-    subject = "Your Login Session Code For Natural News VIP"
-    body = mail_template.format(session_password=session_password, logo_url="natural-news-vip-login\\app\\asset\\logo.svg")
+    # subject = "Your Login Session Code For Natural News VIP"
+    # body = mail_template.format(session_password=session_password, logo_url="natural-news-vip-login\\app\\asset\\logo.svg")
     # background_tasks.add_task(send_email, email, subject, body)
 
     return {"message": "Session password sent to your email."}
