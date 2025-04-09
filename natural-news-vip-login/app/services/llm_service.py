@@ -4,6 +4,7 @@ from app.models.chat import Message, Chat
 from app.models.user import User
 from app.services.workflows import get_good_workflow
 from app.services.websocket_manager import connection_manager
+from app.services.prompt import TEXT_SUMMARIZER, JOURNALS, LONGEVITY_ROADMAP, MASTER_GARDENER, PERSONALIZED_WELLNESS_PLAN , NATURAL_SUPPLEMENTS_INGREDIENTS_FINDER, GROCERY_SHOPPING_COACH, DAILY_MEAL_PLANNER, INGREDIENTS_CHECKER
 
 import asyncio
 from openai import OpenAI
@@ -12,6 +13,19 @@ from typing import AsyncGenerator, List, Optional, Dict
 from sqlmodel import Session
 from starlette.websockets import WebSocketState
 from fastapi import WebSocket
+
+map_tools_name = {
+    "text-summarizer": TEXT_SUMMARIZER,
+    "journals": JOURNALS,
+    "longevity-roadmap": LONGEVITY_ROADMAP,
+    "master-gardener": MASTER_GARDENER,
+    "personalized-wellness-plan": PERSONALIZED_WELLNESS_PLAN,
+    "natural-supplements-ingredients-finder": NATURAL_SUPPLEMENTS_INGREDIENTS_FINDER,
+    "grocery-shopping-coach": GROCERY_SHOPPING_COACH,
+    "daily-meal-planner": DAILY_MEAL_PLANNER,
+    "ingredients-checker": INGREDIENTS_CHECKER,
+    "chat-with-enoch": "You are a helpful assistant."
+}
 
 def initialize_client_and_model(llm_selection):
     """Initialize the client and model based on the selected LLM engine."""
@@ -27,6 +41,12 @@ def initialize_client_and_model(llm_selection):
             api_key=API_KEY
         )
         model = 'Qwen/Qwen2.5-72B-Instruct'
+    elif llm_selection == "Qwen-QWQ-32B-128k (reasoning)":
+        client = OpenAI(
+            base_url="https://api.deepinfra.com/v1/openai",
+            api_key="06asX0udlOKNwCO7OLYodSViK60k42bF",
+        )
+        model = 'Qwen/QwQ-32B'
     return client, model
 
 def token_count(content) -> int:
@@ -45,15 +65,12 @@ class Workflow:
         current_data = input_data
         total_tokens = 0
 
-        # for agent in self.agents:
-        #     async for llm_response in agent.act():  # ✅ Iterate properly
-        #         yield llm_response  # Stream each chunk
-
         for agent in self.agents:
             agent.perceive(input_data)
 
             async for response in agent.act():  # ✅ Iterate over streamed chunks
                 yield response  # ✅ Stream chunks asynchronously
+
 async def async_stream_iterator(sync_stream):
     """Convert a synchronous generator into an async generator."""
     loop = asyncio.get_running_loop()
@@ -104,7 +121,9 @@ async def handle_llm_chat(
     user: User,
     message_history: List[Dict],
     user_message: str,
-    regenerate: Optional[bool]  # Allow None or bool
+    regenerate: Optional[bool],
+    model_type: str,
+    tool_name: str  # Allow None or bool
 ):
     """Handle LLM chat logic including streaming response and saving messages."""
     # Deduct reward before processing LLM request
@@ -114,71 +133,80 @@ async def handle_llm_chat(
         return
 
     session.commit()  # Save updated rewards in DB
-
-    # If regenerate, remove the last assistant message from history & database
-    if regenerate:
-        last_assistant_message = (
-            session.query(Message)
-            .filter(Message.chat_id == chat_id, Message.role == "assistant")
-            .order_by(Message.id.desc())  # Get latest assistant message
-            .first()
-        )
-        if last_assistant_message:
-            session.delete(last_assistant_message)
-            session.commit()
-            # Also remove it from message history
-            if message_history and message_history[-1]["role"] == "assistant":
-                message_history.pop()
-
-    # Save user's message if it's not a regeneration request
-    if not regenerate:
-        user_tokens = token_count(user_message)
-        user_message_obj = Message(chat_id=chat_id, role="user", content=user_message, tokens=user_tokens)
-        session.add(user_message_obj)
-        session.commit()
-
-        # Add user message to history
-        message_history.append({"role": "user", "content": user_message})
-        update_chat_title(session, chat_id)
-
-    # Initialize client and model
-    client, model = initialize_client_and_model("Qwen2.5-72B-Instruct-32K")
-    assistant_response = ""
-    stream = client.chat.completions.create(
-        model=model,
-        messages=message_history,
-        stream=True,
-    )
-
-    async for chunk in async_stream_iterator(stream):
-        if websocket.client_state != WebSocketState.CONNECTED:
-            print("Client disconnected, stopping stream.")
-            break  # Stop processing if client disconnects
-
-        if chunk.choices and chunk.choices[0].delta.content:
-            content = chunk.choices[0].delta.content
-            assistant_response += content
-            await connection_manager.send_message(chat_id, content)
-
-    # Save assistant's response even if client disconnects mid-stream
-    if assistant_response.strip():
-        assistant_tokens = token_count(assistant_response)
-
-        if regenerate and last_assistant_message:
-            # Update last assistant message
-            last_assistant_message.content = assistant_response
-            last_assistant_message.tokens = assistant_tokens
-        else:
-            # Create a new assistant message
-            assistant_message_obj = Message(
-                chat_id=chat_id, role="assistant", content=assistant_response, tokens=assistant_tokens
+    if tool_name not in map_tools_name:
+        await websocket.send_text("❌ Invalid tool name.")
+        await websocket.close(code=1008)
+        return
+    else:
+        # If regenerate, remove the last assistant message from history & database
+        if regenerate:
+            last_assistant_message = (
+                session.query(Message)
+                .filter(Message.chat_id == chat_id, Message.role == "assistant")
+                .order_by(Message.id.desc())  # Get latest assistant message
+                .first()
             )
-            session.add(assistant_message_obj)
+            if last_assistant_message:
+                session.delete(last_assistant_message)
+                session.commit()
+                # Also remove it from message history
+                if message_history and message_history[-1]["role"] == "assistant":
+                    message_history.pop()
 
-        session.commit()
+        # Save user's message if it's not a regeneration request
+        if not regenerate:
+            user_tokens = token_count(user_message)
+            user_message_obj = Message(chat_id=chat_id, role="user", content=user_message, tokens=user_tokens)
+            session.add(user_message_obj)
+            session.commit()
+            print(map_tools_name[tool_name])
+            # Add user message to history
+            message_history.append({"role":"system", "content": map_tools_name[tool_name]})
+            message_history.append(
+                {"role": "user", "content": user_message}
+                )
+            update_chat_title(session, chat_id)
+        if model_type == "default":
+        # Initialize client and model
+            client, model = initialize_client_and_model("Qwen2.5-72B-Instruct-32K")
+        elif model_type == "reasonning":
+            client, model = initialize_client_and_model("Qwen-QWQ-32B-128k (reasoning)")
+        assistant_response = ""
+        stream = client.chat.completions.create(
+            model=model,
+            messages=message_history,
+            stream=True,
+        )
 
-    if websocket.client_state == WebSocketState.CONNECTED:
-        await websocket.close(code=1000)
+        async for chunk in async_stream_iterator(stream):
+            if websocket.client_state != WebSocketState.CONNECTED:
+                print("Client disconnected, stopping stream.")
+                break  # Stop processing if client disconnects
+
+            if chunk.choices and chunk.choices[0].delta.content:
+                content = chunk.choices[0].delta.content
+                assistant_response += content
+                await connection_manager.send_message(chat_id, content)
+
+        # Save assistant's response even if client disconnects mid-stream
+        if assistant_response.strip():
+            assistant_tokens = token_count(assistant_response)
+
+            if regenerate and last_assistant_message:
+                # Update last assistant message
+                last_assistant_message.content = assistant_response
+                last_assistant_message.tokens = assistant_tokens
+            else:
+                # Create a new assistant message
+                assistant_message_obj = Message(
+                    chat_id=chat_id, role="assistant", content=assistant_response, tokens=assistant_tokens
+                )
+                session.add(assistant_message_obj)
+
+            session.commit()
+
+        if websocket.client_state == WebSocketState.CONNECTED:
+            await websocket.close(code=1000)
 
 
 async def handle_ingredients_checker(

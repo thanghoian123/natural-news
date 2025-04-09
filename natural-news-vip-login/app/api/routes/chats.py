@@ -1,3 +1,4 @@
+from tabnanny import check
 from app.database import get_db
 from app.schemas.chat import ChatResponse, MessageResponse
 from app.services.chat_service import create_chat, get_chat_history_by_id, get_chats_by_user_id,delete_chat_by_id
@@ -13,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 from sqlmodel import Session
 from typing import List, Optional
 from app.core.auth import verify_token
+
 router = APIRouter(prefix="/chats", tags=["Chats"])
 
 
@@ -50,23 +52,16 @@ def get_user_chats(user_id: int, session: Session = Depends(get_db), payload: di
     return chats
 
 
-@router.websocket("/ws/{chat_type}/{user_id}/{chat_id}/{regenerate}")
-@router.websocket("/ws/{chat_type}/{user_id}/{chat_id}")
-# async def chat_websocket(
-#     websocket: WebSocket,
-#     chat_type: str,
-#     chat_id: int,
-#     session: Session = Depends(get_db),
-#     regenerate: Optional[str] = None,
-# ):
+@router.websocket("/ws/{model_type}/{user_id}/{chat_id}/{tool_name}/{regenerate}")
+@router.websocket("/ws/{model_type}/{user_id}/{chat_id}/{tool_name}")
 async def chat_websocket(
     websocket: WebSocket,
-    chat_type: str,
+    model_type: str,
     chat_id: int,
     user_id: int,
+    tool_name: str,
     session: Session = Depends(get_db),
-    regenerate: Optional[str] = None,
-    # payload: dict = Depends(verify_token)
+    regenerate: Optional[str] = None
 ):
     await connection_manager.connect(chat_id, websocket)
     validated = await validate_chat_and_user(websocket, session, chat_id, user_id)
@@ -99,20 +94,31 @@ async def chat_websocket(
             # Retrieve message history (last 5 messages)
             message_history = await get_message_history(session, chat_id)
 
-            if chat_type == "llm":
-                await handle_llm_chat(
-                    websocket, session, chat_id, user, message_history, user_message, regenerate=(regenerate == "regenerate")
-                )
-                return
-
-            elif chat_type == "ingredients-checker":
-                await handle_ingredients_checker(websocket, session, chat_id, user_message)
-                return
-
-            else:
-                await websocket.send_text("❌ Unknown chat type.")
-                await websocket.close(code=1008)
-                return
+            # if model_type == "default":
+            #     if tool_name == "ingredients-checker":
+            #         await handle_ingredients_checker(websocket, session, chat_id, user_message)
+            #         return
+            #     else:
+            #         await handle_llm_chat(
+            #             websocket, session, chat_id, user, message_history, user_message, regenerate=(regenerate == "regenerate"), model_type=model_type, tool_name=model_type
+            #         )
+            # elif model_type == "reasonning":
+            #     if tool_name == "ingredients-checker":
+            #         await handle_ingredients_checker(websocket, session, chat_id, user_message)
+            #         return
+            #     else:
+            #         await handle_llm_chat(
+            #             websocket, session, chat_id, user, message_history, user_message, regenerate=(regenerate == "regenerate"), model_type=model_type, tool_name=model_type
+            #         )
+            #         return
+            await handle_llm_chat(
+                        websocket, session, chat_id, user, message_history, user_message, regenerate=(regenerate == "regenerate"), model_type=model_type, tool_name=tool_name
+                    )
+            return
+            # else:
+            #     await websocket.send_text("❌ Unknown chat type.")
+            #     await websocket.close(code=1008)
+            #     return
 
     except WebSocketDisconnect:
         print(f"Client {chat_id} disconnected.")
