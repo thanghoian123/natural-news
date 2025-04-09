@@ -169,7 +169,7 @@ async def handle_llm_chat(
         if model_type == "default":
         # Initialize client and model
             client, model = initialize_client_and_model("Qwen2.5-72B-Instruct-32K")
-        elif model_type == "reasonning":
+        elif model_type == "reasoning":
             client, model = initialize_client_and_model("Qwen-QWQ-32B-128k (reasoning)")
         assistant_response = ""
         stream = client.chat.completions.create(
