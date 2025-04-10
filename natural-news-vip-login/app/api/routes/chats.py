@@ -1,7 +1,7 @@
 from tabnanny import check
 from app.database import get_db
 from app.schemas.chat import ChatResponse, MessageResponse
-from app.services.chat_service import create_chat, get_chat_history_by_id, get_chats_by_user_id,delete_chat_by_id
+from app.services.chat_service import create_chat, get_chat_history_by_id, get_chats_by_user_id,delete_chat_by_id,delete_user_chats
 from app.models.chat import Message
 from app.services.websocket_manager import connection_manager
 from app.services.llm_service import (
@@ -10,7 +10,7 @@ from app.services.llm_service import (
     handle_ingredients_checker,
     validate_chat_and_user,
 )
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect,Query
 from sqlmodel import Session
 from typing import List, Optional
 from app.core.auth import verify_token
@@ -37,6 +37,18 @@ def get_chat_messages(chat_id: int, session: Session = Depends(get_db), payload:
         raise HTTPException(status_code=404, detail="Chat not found")
     return chat.messages
 
+@router.delete("/delete-my-history", response_model=dict)
+def delete_user_chats_route(
+    session: Session = Depends(get_db), 
+    payload: dict = Depends(verify_token)
+):
+    user_id = payload.get('sub')
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Invalid token: no user ID found")
+
+    num_deleted = delete_user_chats(session, user_id)
+    return {"message": f"Deleted {num_deleted} chats (and their messages) for the user"}
+
 @router.delete("/{chat_id}", response_model=dict)
 # def delete_chat(chat_id: int, session: Session = Depends(get_db)):
 def delete_chat(chat_id: int, session: Session = Depends(get_db), payload: dict = Depends(verify_token)):
@@ -52,17 +64,15 @@ def get_user_chats(user_id: int, session: Session = Depends(get_db), payload: di
     return chats
 
 
-@router.websocket("/ws/{model_type}/{user_id}/{chat_id}/{tool_name}/{regenerate}")
 @router.websocket("/ws/{model_type}/{user_id}/{chat_id}/{tool_name}")
 async def chat_websocket(
     websocket: WebSocket,
     model_type: str,
-    chat_id: int,
     user_id: int,
+    chat_id: int,
     tool_name: str,
-    session: Session = Depends(get_db),
-    regenerate: Optional[str] = None
-):
+    regenerate: Optional[str] = Query(None),  # 👈 Use query parameter here
+    session: Session = Depends(get_db)):
     await connection_manager.connect(chat_id, websocket)
     validated = await validate_chat_and_user(websocket, session, chat_id, user_id)
     if validated is None:

@@ -37,3 +37,12 @@ def delete_chat_by_id(db: Session, chat_id: int) -> bool:
     db.delete(chat)
     db.commit()
     return True
+
+def delete_user_chats(db: Session, user_id: int) -> int:
+    deleted_count = (
+        db.query(Chat)
+        .filter(Chat.user_id == user_id)
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return deleted_count

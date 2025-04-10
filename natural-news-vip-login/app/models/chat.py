@@ -9,10 +9,9 @@ class Chat(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    title: str = Column(String, nullable=True)
+    title: str = Column(String, nullable=True, default='New chat')
     user = relationship("User", back_populates="chats")
     messages = relationship("Message", back_populates="chat", cascade="all, delete-orphan")  # Add this
-    
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

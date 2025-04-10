@@ -254,7 +254,7 @@ def update_chat_title(db: Session, chat_id: int):
     Updates the chat title using the first user message if not already set.
     """
     chat = db.query(Chat).filter(Chat.id == chat_id).first()
-    if not chat or chat.title:
+    if not chat:
         return  # No chat found or title already set
 
     first_message = (
@@ -266,5 +266,5 @@ def update_chat_title(db: Session, chat_id: int):
 
     if first_message and first_message.content:
         chat.title = first_message.content[:50]  # Set title to first message (limit 50 chars)
-        db.commit()
 
+    db.commit()

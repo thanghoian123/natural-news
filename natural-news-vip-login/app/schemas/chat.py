@@ -20,6 +20,6 @@ class MessageResponse(BaseModel):
 class ChatResponse(BaseModel):
     id: int
     user_id: int
-    title: Optional[str] = None
+    title: Optional[str] = 'New chat'
     created_at: datetime
     messages: List[MessageResponse]
