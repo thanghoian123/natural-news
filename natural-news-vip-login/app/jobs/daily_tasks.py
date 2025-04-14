@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.database import SessionLocal
+from app.jobs.scheduler import scheduler  # ✅ Import shared scheduler
+
 from app.models.user import User
 from app.models.rewardresetlog import RewardResetLog  # Import the new model
 from app.schemas.user import TierEnum
@@ -47,6 +48,4 @@ def reset_rewards():
         db.close()
 
 # Schedule the task every 24 hours
-scheduler = BackgroundScheduler()
 scheduler.add_job(reset_rewards, "interval", hours=24)  # Change to hours=24
-scheduler.start()
