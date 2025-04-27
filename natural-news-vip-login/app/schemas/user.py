@@ -7,6 +7,7 @@ from typing import Optional
 class PlatformEnum(str, Enum):
     SHOPIFY = "Shopify"
     HRS = "HRS"
+    SHOPIFY_HRS = "SHOPIFY_HRS"
 
 class TierEnum(str, Enum):
     BRONZE = "Bronze"
@@ -26,6 +27,11 @@ class UserResponse(BaseModel):
     email: str
     type_platform: PlatformEnum
     tier: TierEnum
+    reward: int
 
     class Config:
         from_attributes = True  # Allows ORM mode
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str
